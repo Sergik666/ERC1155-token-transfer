@@ -354,6 +354,11 @@ function resetBalancesAndTransfer() {
         transferButton.disabled = true;
     }
 
+async function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
     // --- ОБНОВЛЕННАЯ Функция получения балансов и метаданных ---
     async function getBalances() {
         // ... (проверки адреса контракта, подключения) ...
@@ -371,22 +376,27 @@ function resetBalancesAndTransfer() {
             // ... (формирование idsToCheck, accounts) ...
             const idsToCheck = [];
             const accounts = [];
-            for (let i = 0; i <= ID_FETCH_LIMIT; i++) {
-                idsToCheck.push(ethers.BigNumber.from(i));
+            const tokensWithBalance = [];
+            for (let i = 0; i <= 1; i++) {
+
+            for (let x = 1000*i; x <= 1000*i+1000; x++) {
+                idsToCheck.push(ethers.BigNumber.from(x));
                 accounts.push(userAddress);
             }
 
-            logMessage(`Вызов balanceOfBatch для ID 0-${ID_FETCH_LIMIT}...`);
+            logMessage(`Вызов balanceOfBatch для ID ${1000*i}-${1000*i+1000}...`);
             const balancesBigNum = await contract.balanceOfBatch(accounts, idsToCheck);
             logMessage('Балансы получены. Запрос метаданных...');
 
             // ... (фильтрация tokensWithBalance) ...
-            const tokensWithBalance = [];
             balancesBigNum.forEach((balance, index) => {
                 if (!balance.isZero()) {
                     tokensWithBalance.push({ id: idsToCheck[index], balance: balance });
                 }
             });
+
+		// await sleep(10000);
+		}
 
             if (tokensWithBalance.length === 0) { /* ... (обработка случая без балансов) ... */
                  balancesDiv.innerHTML = `Нет токенов с балансом > 0 в диапазоне ID 0-${ID_FETCH_LIMIT}.`;
