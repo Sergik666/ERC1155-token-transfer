@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERC-1155 Балансы и Перевод (Polygon)</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+
+    <!--script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" integrity="sha512-FDcVY+g7vcNsW_IKoS3G+0hVcUO1XqAfdXTeQ66RbtB9MXNEufT1ZoXQMu5ZdG6pCLzWNdQuldGyMPLqSD779g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script-->
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        #status, #walletAddress, #balances, #transferStatus, #log {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            word-wrap: break-word;
+        }
+        #balances ul {
+            list-style: none;
+            padding: 0;
+        }
+         #balances li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #balances li span {
+           flex-basis: 60%;
+        }
+        #balances li input {
+           flex-basis: 35%;
+           width: auto; /* Override default width */
+           margin-top: 0;
+        }
+        pre {
+             background-color: #333;
+             color: #fff;
+             padding: 10px;
+             border-radius: 4px;
+             overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ERC-1155 Инструмент (Polygon)</h1>
+
+    <button id="connectButton">Подключить MetaMask</button>
+    <div id="status">Статус: Не подключен</div>
+    <div id="walletAddress">Адрес кошелька: -</div>
+
+    <hr style="margin: 20px 0;">
+
+    <label for="contractAddress">Адрес контракта ERC-1155 (Polygon):</label>
+    <input type="text" id="contractAddress" placeholder="0x...">
+
+    <button id="getBalanceButton" disabled>Получить балансы</button>
+
+    <h2>Балансы токенов (ID 0-50 с балансом > 0):</h2>
+    <div id="balances">Нет данных</div>
+
+    <hr style="margin: 20px 0;">
+
+    <h2>Перевод токенов</h2>
+    <label for="recipientAddress">Адрес получателя:</label>
+    <input type="text" id="recipientAddress" placeholder="0x...">
+
+    <div id="transferSection" style="margin-top: 10px;">
+        <p>Укажите количество для перевода рядом с ID токена выше.</p>
+    </div>
+
+    <button id="transferButton" disabled>Перевести выбранные токены (safeBatchTransferFrom)</button>
+    <div id="transferStatus" style="margin-top: 10px;"></div>
+     <div id="log">
+        <h3>Лог:</h3>
+        <pre id="logContent"></pre>
+    </div>
+</div>
+
+<script>
+    const connectButton = document.getElementById('connectButton');
+    const getBalanceButton = document.getElementById('getBalanceButton');
+    const transferButton = document.getElementById('transferButton');
+    const statusDiv = document.getElementById('status');
+    const walletAddressDiv = document.getElementById('walletAddress');
+    const contractAddressInput = document.getElementById('contractAddress');
+    const balancesDiv = document.getElementById('balances');
+    const recipientAddressInput = document.getElementById('recipientAddress');
+    const transferStatusDiv = document.getElementById('transferStatus');
+    const logContent = document.getElementById('logContent');
+
+    const POLYGON_CHAIN_ID = '0x89'; // 137 в hex
+    const POLYGON_RPC_URL = 'https://polygon-rpc.com/'; // Пример RPC
+    const POLYGON_EXPLORER = 'https://polygonscan.com/';
+    const ID_FETCH_LIMIT = 2000; // Проверять ID от 0 до 50
+
+    let provider;
+    let signer;
+    let userAddress;
+    let currentContractAddress;
+    let currentBalances = {}; // { id: balanceString }
+
+    // Минимальный ABI для необходимых функций
+    const erc1155Abi = [
+        // balanceOfBatch
+        "function balanceOfBatch(address[] memory accounts, uint256[] memory ids) public view returns (uint256[] memory)",
+        // safeBatchTransferFrom
+        "function safeBatchTransferFrom(address from, address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public"
+    ];
+
+    // --- Функции ---
+
+    function logMessage(message) {
+        console.log(message);
+        const timestamp = new Date().toLocaleTimeString();
+        logContent.textContent += `[${timestamp}] ${message}\n`;
+        // Прокрутка вниз
+        logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
+    }
+
+    async function connectWallet() {
+        logMessage('Попытка подключения кошелька...');
+        if (typeof window.ethereum === 'undefined') {
+            logMessage('Ошибка: MetaMask не установлен!');
+            statusDiv.textContent = 'Ошибка: MetaMask не установлен!';
+            alert('Пожалуйста, установите MetaMask!');
+            return;
+        }
+
+        try {
+            // Запрос подключения аккаунта
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            userAddress = accounts[0];
+            logMessage(`Кошелек подключен: ${userAddress}`);
+
+            // Инициализация провайдера и подписчика (signer)
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+
+            // Проверка и переключение сети
+            await switchToPolygon();
+
+            // Обновление UI
+            statusDiv.textContent = 'Статус: Подключен к Polygon';
+            statusDiv.style.color = 'green';
+            walletAddressDiv.textContent = `Адрес кошелька: ${userAddress}`;
+            connectButton.textContent = 'Кошелек подключен';
+            connectButton.disabled = true;
+            getBalanceButton.disabled = false;
+
+            // Слушатели смены аккаунта и сети
+            window.ethereum.on('accountsChanged', handleAccountsChanged);
+            window.ethereum.on('chainChanged', handleChainChanged);
+
+        } catch (error) {
+            logMessage(`Ошибка подключения: ${error.message || error}`);
+            statusDiv.textContent = `Ошибка подключения: ${error.message || error}`;
+            statusDiv.style.color = 'red';
+        }
+    }
+
+    async function switchToPolygon() {
+         logMessage('Проверка сети...');
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+        if (chainId !== POLYGON_CHAIN_ID) {
+            logMessage(`Текущая сеть (${chainId}), требуется переключение на Polygon (${POLYGON_CHAIN_ID})`);
+            statusDiv.textContent = 'Требуется переключение на Polygon...';
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: POLYGON_CHAIN_ID }],
+                });
+                logMessage('Успешно переключено на Polygon.');
+                statusDiv.textContent = 'Статус: Подключен к Polygon';
+            } catch (switchError) {
+                // Код 4902 означает, что сеть не добавлена в MetaMask
+                if (switchError.code === 4902) {
+                    logMessage('Сеть Polygon не найдена в MetaMask, попытка добавить...');
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: POLYGON_CHAIN_ID,
+                                chainName: 'Polygon Mainnet',
+                                rpcUrls: [POLYGON_RPC_URL],
+                                nativeCurrency: {
+                                    name: 'MATIC',
+                                    symbol: 'MATIC',
+                                    decimals: 18,
+                                },
+                                blockExplorerUrls: [POLYGON_EXPLORER],
+                            }],
+                        });
+                        logMessage('Сеть Polygon добавлена. Повторная попытка переключения...');
+                        // Повторная попытка переключения после добавления
+                         await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: POLYGON_CHAIN_ID }],
+                        });
+                         logMessage('Успешно переключено на Polygon.');
+                         statusDiv.textContent = 'Статус: Подключен к Polygon';
+                    } catch (addError) {
+                        logMessage(`Ошибка добавления/переключения сети Polygon: ${addError.message || addError}`);
+                        statusDiv.textContent = `Ошибка добавления/переключения сети Polygon: ${addError.message || addError}`;
+                        throw addError; // Пробрасываем ошибку дальше
+                    }
+                } else {
+                     logMessage(`Ошибка переключения сети: ${switchError.message || switchError}`);
+                     statusDiv.textContent = `Ошибка переключения сети: ${switchError.message || switchError}`;
+                     throw switchError; // Пробрасываем ошибку дальше
+                }
+            }
+        } else {
+             logMessage('Уже подключены к сети Polygon.');
+        }
+    }
+
+
+    function handleAccountsChanged(accounts) {
+        if (accounts.length === 0) {
+            logMessage('Кошелек отключен.');
+            resetApp();
+        } else {
+            userAddress = accounts[0];
+            logMessage(`Аккаунт изменен: ${userAddress}`);
+            walletAddressDiv.textContent = `Адрес кошелька: ${userAddress}`;
+            // Переинициализация signer и сброс балансов
+            signer = provider.getSigner();
+            resetBalancesAndTransfer();
+            // Можно автоматически запросить балансы для нового аккаунта, если контракт уже введен
+            if (currentContractAddress) {
+                getBalances();
+            }
+        }
+    }
+
+    function handleChainChanged(chainId) {
+        logMessage(`Сеть изменена: ${chainId}`);
+        if (chainId !== POLYGON_CHAIN_ID) {
+            logMessage('Предупреждение: Выбрана неверная сеть. Функциональность может быть нарушена.');
+            statusDiv.textContent = 'Статус: Подключена неверная сеть!';
+            statusDiv.style.color = 'orange';
+            resetBalancesAndTransfer(); // Сбрасываем балансы и форму перевода
+            getBalanceButton.disabled = true; // Блокируем кнопку баланса
+        } else {
+             logMessage('Подключено к сети Polygon.');
+             statusDiv.textContent = 'Статус: Подключен к Polygon';
+             statusDiv.style.color = 'green';
+             getBalanceButton.disabled = false; // Разблокируем кнопку баланса, если кошелек подключен
+             // Можно перезапросить балансы, если контракт был введен
+              if (currentContractAddress) {
+                getBalances();
+              }
+        }
+         // Обновляем provider на всякий случай
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+    }
+
+    function resetApp() {
+        statusDiv.textContent = 'Статус: Не подключен';
+        statusDiv.style.color = 'black';
+        walletAddressDiv.textContent = 'Адрес кошелька: -';
+        connectButton.textContent = 'Подключить MetaMask';
+        connectButton.disabled = false;
+        getBalanceButton.disabled = true;
+        transferButton.disabled = true;
+        contractAddressInput.value = '';
+        recipientAddressInput.value = '';
+        currentContractAddress = null;
+        userAddress = null;
+        provider = null;
+        signer = null;
+        resetBalancesAndTransfer();
+        logContent.textContent = ''; // Очистить лог
+    }
+
+     function resetBalancesAndTransfer() {
+        balancesDiv.innerHTML = 'Нет данных';
+        transferStatusDiv.textContent = '';
+        transferButton.disabled = true;
+        currentBalances = {};
+     }
+
+    async function getBalances() {
+        currentContractAddress = contractAddressInput.value.trim();
+        if (!ethers.utils.isAddress(currentContractAddress)) {
+             logMessage('Ошибка: Введен неверный адрес контракта.');
+             alert('Пожалуйста, введите корректный адрес контракта.');
+             return;
+        }
+        if (!provider || !userAddress) {
+             logMessage('Ошибка: Кошелек не подключен или не выбран адрес.');
+             alert('Пожалуйста, сначала подключите кошелек.');
+             return;
+        }
+
+        logMessage(`Запрос балансов для контракта ${currentContractAddress}...`);
+        balancesDiv.innerHTML = '<i>Загрузка балансов...</i>';
+        getBalanceButton.disabled = true; // Блокируем на время запроса
+        transferButton.disabled = true; // Блокируем кнопку перевода
+
+        try {
+            const contract = new ethers.Contract(currentContractAddress, erc1155Abi, provider);
+
+            // Готовим массивы для balanceOfBatch
+            const ids = [];
+            const accounts = [];
+            for (let i = 0; i <= ID_FETCH_LIMIT; i++) {
+                ids.push(i);
+                accounts.push(userAddress); // Один и тот же адрес для каждого ID
+            }
+
+            logMessage(`Вызов balanceOfBatch для ID 0-${ID_FETCH_LIMIT}...`);
+            const balancesBigNum = await contract.balanceOfBatch(accounts, ids);
+            logMessage('Балансы получены.');
+
+            currentBalances = {}; // Сбрасываем текущие балансы
+            const balanceList = document.createElement('ul');
+            let nonZeroBalanceCount = 0;
+
+            balancesBigNum.forEach((balance, index) => {
+                const id = ids[index];
+                if (!balance.isZero()) {
+                    const balanceStr = balance.toString();
+                    currentBalances[id] = balanceStr; // Сохраняем баланс
+                    nonZeroBalanceCount++;
+
+                    const listItem = document.createElement('li');
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = `ID: ${id}, Баланс: ${balanceStr}`;
+
+                    const amountInput = document.createElement('input');
+                    amountInput.type = 'number';
+                    amountInput.min = '0';
+                    amountInput.max = balanceStr; // Максимум - текущий баланс
+                    amountInput.placeholder = 'Кол-во для перевода';
+                    amountInput.dataset.tokenId = id; // Сохраняем ID в data-атрибуте
+
+                    listItem.appendChild(textSpan);
+                    listItem.appendChild(amountInput);
+                    balanceList.appendChild(listItem);
+                }
+            });
+
+            if (nonZeroBalanceCount > 0) {
+                balancesDiv.innerHTML = ''; // Очищаем сообщение "Загрузка"
+                balancesDiv.appendChild(balanceList);
+                transferButton.disabled = false; // Разрешаем перевод, т.к. есть что переводить
+                logMessage(`Найдено ${nonZeroBalanceCount} токенов с ненулевым балансом в диапазоне 0-${ID_FETCH_LIMIT}.`);
+            } else {
+                balancesDiv.innerHTML = `Нет токенов с балансом > 0 в диапазоне ID 0-${ID_FETCH_LIMIT}.`;
+                 logMessage(`Нет токенов с балансом > 0 в диапазоне ID 0-${ID_FETCH_LIMIT}.`);
+            }
+
+        } catch (error) {
+            logMessage(`Ошибка получения балансов: ${error.message || error}`);
+            balancesDiv.innerHTML = `Ошибка получения балансов: ${error.message || error}`;
+        } finally {
+             getBalanceButton.disabled = false; // Разблокируем кнопку в любом случае
+        }
+    }
+
+    async function transferTokens() {
+         const recipientAddress = recipientAddressInput.value.trim();
+         if (!ethers.utils.isAddress(recipientAddress)) {
+             logMessage('Ошибка: Введен неверный адрес получателя.');
+             alert('Пожалуйста, введите корректный адрес получателя.');
+             return;
+         }
+         if (!signer || !userAddress || !currentContractAddress) {
+              logMessage('Ошибка: Кошелек не подключен или контракт не указан.');
+              alert('Ошибка: Кошелек не подключен или контракт не указан.');
+              return;
+         }
+
+         const idsToTransfer = [];
+         const amountsToTransfer = [];
+
+         const amountInputs = balancesDiv.querySelectorAll('input[type="number"][data-token-id]');
+
+         amountInputs.forEach(input => {
+             const id = input.dataset.tokenId;
+             const amountStr = input.value.trim();
+
+             if (amountStr && parseInt(amountStr) > 0) {
+                 const amount = ethers.BigNumber.from(amountStr);
+                 const maxAmount = ethers.BigNumber.from(currentBalances[id]);
+
+                 if (amount.gt(maxAmount)) {
+                     throw new Error(`Ошибка: Количество для ID ${id} (${amountStr}) превышает баланс (${currentBalances[id]}).`);
+                 }
+                  if (amount.isNegative()){
+                     throw new Error(`Ошибка: Количество для ID ${id} (${amountStr}) не может быть отрицательным.`);
+                 }
+
+                 idsToTransfer.push(id);
+                 amountsToTransfer.push(amount); // Добавляем BigNumber
+             }
+         });
+
+         if (idsToTransfer.length === 0) {
+             logMessage('Нет токенов для перевода. Укажите количество > 0.');
+             alert('Пожалуйста, укажите количество токенов для перевода (больше 0).');
+             return;
+         }
+
+         logMessage(`Подготовка к переводу ${idsToTransfer.length} типов токенов на адрес ${recipientAddress}...`);
+         logMessage(`IDs: [${idsToTransfer.join(', ')}]`);
+         logMessage(`Amounts: [${amountsToTransfer.map(a => a.toString()).join(', ')}]`);
+
+         transferButton.disabled = true;
+         transferStatusDiv.textContent = 'Подтвердите транзакцию в MetaMask...';
+
+         try {
+             const contract = new ethers.Contract(currentContractAddress, erc1155Abi, signer);
+             const tx = await contract.safeBatchTransferFrom(
+                 userAddress,         // from
+                 recipientAddress,    // to
+                 idsToTransfer,       // ids
+                 amountsToTransfer,   // amounts
+                 '0x'                 // data (пустые байты)
+             );
+
+             logMessage(`Транзакция отправлена! Хэш: ${tx.hash}`);
+             transferStatusDiv.textContent = `Транзакция отправлена! Хэш: ${tx.hash}. Ожидание подтверждения...`;
+
+             // Ожидание подтверждения транзакции
+             const receipt = await tx.wait();
+             logMessage(`Транзакция подтверждена! Блок: ${receipt.blockNumber}`);
+             transferStatusDiv.innerHTML = `Транзакция успешно подтверждена! <a href="${POLYGON_EXPLORER}tx/${tx.hash}" target="_blank">Посмотреть на PolygonScan</a>`;
+
+             // Очистка полей ввода и обновление балансов
+              amountInputs.forEach(input => input.value = ''); // Очищаем поля ввода
+             logMessage('Обновление балансов после перевода...');
+             await getBalances(); // Обновляем балансы
+
+         } catch (error) {
+            logMessage(`Ошибка перевода: ${error.message || error}`);
+            transferStatusDiv.textContent = `Ошибка перевода: ${error.message || error}`;
+             // В случае ошибки разблокируем кнопку, если балансы еще есть
+             if (Object.keys(currentBalances).length > 0) {
+                transferButton.disabled = false;
+            }
+         } finally {
+             // Кнопка перевода должна остаться заблокированной, если балансы не были обновлены
+             // или разблокироваться только если обновление балансов прошло успешно и есть что переводить
+             // Логика в getBalances() должна справиться с этим.
+         }
+    }
+
+
+    // --- Инициализация и слушатели событий ---
+     window.addEventListener('load', () => {
+        logMessage('Страница загружена. Ожидание подключения кошелька.');
+        connectButton.addEventListener('click', connectWallet);
+        getBalanceButton.addEventListener('click', getBalances);
+        transferButton.addEventListener('click', transferTokens);
+     });
+
+</script>
+
+</body>
+</html>
