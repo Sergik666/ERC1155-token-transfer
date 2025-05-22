@@ -1,0 +1,129 @@
+body {
+    font-family: sans-serif;
+    padding: 20px;
+    background-color: #f4f4f4;
+}
+.container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    max-width: 800px;
+    margin: auto;
+}
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+input[type="text"], input[type="number"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-size: 16px;
+}
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+#status, #walletAddress, #balances, #transferStatus, #log {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    word-wrap: break-word;
+}
+#balances ul {
+    list-style: none;
+    padding: 0;
+}
+
+#balances li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+.balance-amount {
+font-weight: bolder;
+}
+.token-image {
+    flex-basis: 100px;
+    flex-shrink: 0;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 11px;
+    color: #6c757d;
+    text-align: center;
+}
+.token-image img {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    object-fit: contain;
+}
+.token-info {
+    flex-grow: 1;
+    text-align: left;
+    min-width: 150px;
+}
+.token-info strong {
+    display: block;
+    margin-bottom: 3px;
+}
+.token-info small {
+    color: #6c757d;
+}
+ .token-info .metadata-error {
+    color: #dc3545;
+    font-size: 0.8em;
+    display: block;
+    margin-top: 3px;
+}
+.token-transfer {
+    flex-basis: 100px;
+    flex-shrink: 0;
+}
+.token-transfer input {
+   width: 100%;
+   padding: 8px;
+   margin-top: 0;
+}
+
+#log {
+     max-height: 200px;
+     overflow-y: auto;
+}
+pre {
+     background-color: #333;
+     color: #fff;
+     padding: 10px;
+     border-radius: 4px;
+     overflow-x: auto;
+     white-space: pre-wrap;
+     word-break: break-all;
+}
