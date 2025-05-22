@@ -5,41 +5,146 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERC-1155 Балансы и Перевод (Polygon)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+
     <!--script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" integrity="sha512-FDcVY+g7vcNsW_IKoS3G+0hVcUO1XqAfdXTeQ66RbtB9MXNEufT1ZoXQMu5ZdG6pCLzWNdQuldGyMPLqSD779g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script-->
     <style>
-        /* ... (остальные стили без изменений) ... */
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
-        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input[type="text"], input[type="number"] { width: calc(100% - 22px); padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; font-size: 16px; }
-        button:disabled { background-color: #cccccc; cursor: not-allowed; }
-        button:hover:not(:disabled) { background-color: #0056b3; }
-        #status, #walletAddress, #balances, #transferStatus, #log { margin-top: 15px; padding: 10px; background-color: #e9ecef; border-radius: 4px; word-wrap: break-word; }
-        #balances ul { list-style: none; padding: 0; }
-        #balances li { display: flex; align-items: center; margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; gap: 15px; flex-wrap: wrap; }
-        .token-image { flex-basis: 60px; flex-shrink: 0; height: 60px; display: flex; align-items: center; justify-content: center; background-color: #f0f0f0; border-radius: 4px; overflow: hidden; font-size: 11px; color: #6c757d; text-align: center; }
-        .token-image img { max-width: 100%; max-height: 100%; display: block; object-fit: contain; }
-        .token-info { flex-grow: 1; text-align: left; min-width: 150px; }
-        .token-info strong { display: block; margin-bottom: 3px; font-size: 1.1em; } /* Чуть крупнее имя */
-        .token-info .balance-line { margin-top: 5px; } /* Отступ для строки баланса */
-        .token-info .raw-balance-line {
-             font-size: 0.85em; /* Мельче шрифт для raw */
-             color: #6c757d;
-             margin-top: 3px;
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
         }
-        .token-info small { color: #6c757d; } /* ID */
-        .token-info .metadata-error { color: #dc3545; font-size: 0.8em; display: block; margin-top: 3px; }
-        .token-transfer { flex-basis: 120px; /* Немного шире инпут */ flex-shrink: 0; }
-        .token-transfer input { width: 100%; padding: 8px; margin-top: 0; }
-        #log { max-height: 200px; overflow-y: auto; }
-        pre { background-color: #333; color: #fff; padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Убедимся, что padding включен в ширину */
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        #status, #walletAddress, #balances, #transferStatus, #log {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            word-wrap: break-word;
+        }
+        #balances ul {
+            list-style: none;
+            padding: 0;
+        }
+        /* Стили для элементов списка балансов */
+        #balances li {
+            display: flex;
+            /* justify-content: space-between; -- Убираем, т.к. info займет все доступное */
+            align-items: center; /* Вертикальное выравнивание по центру */
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            gap: 15px; /* Расстояние между блоками картинки, инфо и инпутом */
+            flex-wrap: wrap; /* Позволяет переносить элементы, если не влезают */
+        }
+	.balance-amount {
+		font-weight: bolder;
+	}
+        .token-image {
+            flex-basis: 100px; /* Ширина блока картинки */
+            flex-shrink: 0;   /* Не сжиматься */
+            height: 100px;     /* Высота блока картинки */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0; /* Фон для случаев без картинки */
+            border-radius: 4px;
+            overflow: hidden; /* Обрезать картинку, если она больше */
+            font-size: 11px; /* Маленький текст для плейсхолдера */
+            color: #6c757d; /* Серый цвет текста */
+            text-align: center;
+        }
+        .token-image img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            object-fit: contain; /* Масштабировать с сохранением пропорций */
+        }
+        .token-info {
+            flex-grow: 1; /* Занять доступное пространство */
+            text-align: left;
+            min-width: 150px; /* Минимальная ширина для информации */
+        }
+        .token-info strong {
+            display: block; /* Имя на новой строке */
+            margin-bottom: 3px;
+        }
+        .token-info small {
+            color: #6c757d; /* Серый цвет для ID и баланса */
+        }
+         .token-info .metadata-error {
+            color: #dc3545; /* Красный цвет для ошибки */
+            font-size: 0.8em;
+            display: block;
+            margin-top: 3px;
+        }
+        .token-transfer {
+            flex-basis: 100px; /* Ширина блока для ввода количества */
+            flex-shrink: 0;
+        }
+        .token-transfer input {
+           width: 100%; /* Инпут занимает всю ширину своего блока */
+           padding: 8px;
+           margin-top: 0; /* Убираем верхний отступ у инпута */
+        }
+        /* Логи */
+        #log {
+             max-height: 200px; /* Ограничение высоты лога */
+             overflow-y: auto; /* Добавить прокрутку */
+        }
+        pre {
+             background-color: #333;
+             color: #fff;
+             padding: 10px;
+             border-radius: 4px;
+             overflow-x: auto; /* Горизонтальная прокрутка если надо */
+             white-space: pre-wrap; /* Перенос строк в логе */
+             word-break: break-all; /* Перенос длинных строк */
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>ERC-1155 Инструмент (Polygon)</h1>
+
     <button id="connectButton">Подключить MetaMask</button>
     <div id="status">Статус: Не подключен</div>
     <div id="walletAddress">Адрес кошелька: -</div>
@@ -51,7 +156,7 @@
 
     <button id="getBalanceButton" disabled>Получить балансы и метаданные</button>
 
-    <h2>Балансы токенов (ID 0-50 с балансом > 0):</h2>
+    <h2>Балансы токенов (ID 0-5000 с балансом > 0):</h2>
     <div id="balances">Нет данных</div>
 
     <hr style="margin: 20px 0;">
@@ -70,59 +175,179 @@
         <h3>Лог:</h3>
         <pre id="logContent"></pre>
     </div>
-
 </div>
 
 <script>
-    // --- Элементы DOM, Константы, ABI (без изменений) ---
+    // --- Элементы DOM (без изменений) ---
     const connectButton = document.getElementById('connectButton');
     const getBalanceButton = document.getElementById('getBalanceButton');
-    // ... остальные элементы
+    const transferButton = document.getElementById('transferButton');
+    const statusDiv = document.getElementById('status');
+    const walletAddressDiv = document.getElementById('walletAddress');
+    const contractAddressInput = document.getElementById('contractAddress');
+    const balancesDiv = document.getElementById('balances');
+    const recipientAddressInput = document.getElementById('recipientAddress');
+    const transferStatusDiv = document.getElementById('transferStatus');
     const logContent = document.getElementById('logContent');
 
-    const POLYGON_CHAIN_ID = '0x89';
-    // ... остальные константы
-    const METADATA_FETCH_TIMEOUT = 10000;
+    // --- Константы и переменные (без изменений, кроме ABI) ---
+    const POLYGON_CHAIN_ID = '0x89'; // 137 в hex
+    const POLYGON_RPC_URL = 'https://polygon-rpc.com/';
+    const POLYGON_EXPLORER = 'https://polygonscan.com/';
+    const ID_FETCH_LIMIT = 2000;
+    const METADATA_FETCH_TIMEOUT = 10000; // Таймаут для запроса метаданных (10 сек)
 
     let provider;
     let signer;
     let userAddress;
     let currentContractAddress;
-    // ИЗМЕНЕНИЕ: Структура хранения данных о балансе
-    let currentBalances = {}; // { idString: { rawBalance: string, decimals: number, name: string } }
+    let currentBalances = {}; // { idString: balanceString }
 
+    // --- ОБНОВЛЕННЫЙ ABI ---
     const erc1155Abi = [
         "function balanceOfBatch(address[] memory accounts, uint256[] memory ids) public view returns (uint256[] memory)",
         "function safeBatchTransferFrom(address from, address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public",
-        "function uri(uint256 _id) public view returns (string memory)"
+        "function uri(uint256 _id) public view returns (string memory)" // <-- ДОБАВЛЕНО
     ];
 
-    // --- Функции логирования, подключения, переключения сети, хелперы URI (без изменений) ---
-    function logMessage(message) { /* ... */
+    // --- Функции логирования, подключения, переключения сети (без изменений) ---
+    function logMessage(message) {
         console.log(message);
         const timestamp = new Date().toLocaleTimeString();
         logContent.textContent += `[${timestamp}] ${message}\n`;
         logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
-     }
-    async function connectWallet() { /* ... */ }
-    async function switchToPolygon() { /* ... */ }
-    function handleAccountsChanged(accounts) { /* ... */ }
-    function handleChainChanged(chainId) { /* ... */ }
-    function resetApp() { /* ... */ }
-     function resolveMetadataUri(uri, tokenId) { /* ... */
+    }
+
+    async function connectWallet() {
+        logMessage('Попытка подключения кошелька...');
+        if (typeof window.ethereum === 'undefined') {
+            logMessage('Ошибка: MetaMask не установлен!');
+            statusDiv.textContent = 'Ошибка: MetaMask не установлен!';
+            alert('Пожалуйста, установите MetaMask!');
+            return;
+        }
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            userAddress = accounts[0];
+            logMessage(`Кошелек подключен: ${userAddress}`);
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            await switchToPolygon();
+            statusDiv.textContent = 'Статус: Подключен к Polygon';
+            statusDiv.style.color = 'green';
+            walletAddressDiv.textContent = `Адрес кошелька: ${userAddress}`;
+            connectButton.textContent = 'Кошелек подключен';
+            connectButton.disabled = true;
+            getBalanceButton.disabled = false;
+            window.ethereum.on('accountsChanged', handleAccountsChanged);
+            window.ethereum.on('chainChanged', handleChainChanged);
+        } catch (error) {
+            logMessage(`Ошибка подключения: ${error.message || error}`);
+            statusDiv.textContent = `Ошибка подключения: ${error.message || error}`;
+            statusDiv.style.color = 'red';
+        }
+    }
+
+     async function switchToPolygon() {
+         logMessage('Проверка сети...');
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== POLYGON_CHAIN_ID) {
+            logMessage(`Требуется переключение на Polygon (${POLYGON_CHAIN_ID})`);
+            statusDiv.textContent = 'Требуется переключение на Polygon...';
+            try {
+                await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_CHAIN_ID }], });
+                logMessage('Успешно переключено на Polygon.');
+                statusDiv.textContent = 'Статус: Подключен к Polygon';
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    logMessage('Сеть Polygon не найдена, попытка добавить...');
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{ chainId: POLYGON_CHAIN_ID, chainName: 'Polygon Mainnet', rpcUrls: [POLYGON_RPC_URL], nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18, }, blockExplorerUrls: [POLYGON_EXPLORER], }],
+                        });
+                        logMessage('Сеть Polygon добавлена. Повторная попытка переключения...');
+                         await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_CHAIN_ID }], });
+                         logMessage('Успешно переключено на Polygon.');
+                         statusDiv.textContent = 'Статус: Подключен к Polygon';
+                    } catch (addError) {
+                        logMessage(`Ошибка добавления/переключения сети Polygon: ${addError.message || addError}`);
+                        statusDiv.textContent = `Ошибка сети: ${addError.message || addError}`;
+                        throw addError;
+                    }
+                } else {
+                     logMessage(`Ошибка переключения сети: ${switchError.message || switchError}`);
+                     statusDiv.textContent = `Ошибка переключения сети: ${switchError.message || switchError}`;
+                     throw switchError;
+                }
+            }
+        } else {
+             logMessage('Уже подключены к сети Polygon.');
+        }
+    }
+
+    function handleAccountsChanged(accounts) { /* ... без изменений ... */
+        if (accounts.length === 0) { logMessage('Кошелек отключен.'); resetApp(); }
+        else {
+            userAddress = accounts[0]; logMessage(`Аккаунт изменен: ${userAddress}`);
+            walletAddressDiv.textContent = `Адрес кошелька: ${userAddress}`;
+            signer = provider.getSigner(); resetBalancesAndTransfer();
+            if (currentContractAddress) { getBalances(); }
+        }
+    }
+     function handleChainChanged(chainId) { /* ... без изменений ... */
+        logMessage(`Сеть изменена: ${chainId}`);
+        provider = new ethers.providers.Web3Provider(window.ethereum); // Обновляем провайдер
+        signer = provider.getSigner(); // и подписчика
+        if (chainId !== POLYGON_CHAIN_ID) {
+            logMessage('Предупреждение: Выбрана неверная сеть.'); statusDiv.textContent = 'Статус: Подключена неверная сеть!'; statusDiv.style.color = 'orange';
+            resetBalancesAndTransfer(); getBalanceButton.disabled = true;
+        } else {
+            logMessage('Подключено к сети Polygon.'); statusDiv.textContent = 'Статус: Подключен к Polygon'; statusDiv.style.color = 'green';
+            getBalanceButton.disabled = !userAddress; // Разблокируем, если кошелек подключен
+            if (currentContractAddress && userAddress) { getBalances(); }
+        }
+    }
+     function resetApp() { /* ... без изменений ... */
+        statusDiv.textContent = 'Статус: Не подключен'; statusDiv.style.color = 'black';
+        walletAddressDiv.textContent = 'Адрес кошелька: -';
+        connectButton.textContent = 'Подключить MetaMask'; connectButton.disabled = false;
+        getBalanceButton.disabled = true; transferButton.disabled = true;
+        contractAddressInput.value = ''; recipientAddressInput.value = '';
+        currentContractAddress = null; userAddress = null; provider = null; signer = null;
+        resetBalancesAndTransfer(); logContent.textContent = '';
+    }
+
+    function resetBalancesAndTransfer() {
+        balancesDiv.innerHTML = 'Нет данных';
+        transferStatusDiv.textContent = '';
+        currentBalances = {};
+        // Кнопка перевода должна быть отключена, если нет балансов
+        transferButton.disabled = true;
+    }
+
+    // --- НОВАЯ Функция для обработки URI и IPFS ---
+    function resolveMetadataUri(uri, tokenId) {
         if (!uri) return null;
-         if (uri.includes('{id}')) {
+
+        // Замена {id} плейсхолдера на HEX ID (padded)
+        if (uri.includes('{id}')) {
+            // ethers.BigNumber.from(tokenId) если tokenId не BigNumber
             const hexId = ethers.BigNumber.from(tokenId).toHexString().substring(2).padStart(64, '0');
             uri = uri.replace('{id}', hexId);
         }
+
+        // Преобразование IPFS URI в HTTP URL через публичный гейтвей
         if (uri.startsWith('ipfs://')) {
+            // Можно использовать другой гейтвей: cloudflare-ipfs.com, gateway.pinata.cloud и др.
             return `https://ipfs.io/ipfs/${uri.substring(7)}`;
         }
-        return uri;
-     }
 
-    // ИЗМЕНЕНИЕ: Сброс включает очистку decimals
-     function resetBalancesAndTransfer() {
+        // Возвращаем как есть, если это http/https или другой протокол
+        return uri;
+    }
+
+function resetBalancesAndTransfer() {
         balancesDiv.innerHTML = 'Нет данных';
         transferStatusDiv.textContent = '';
         currentBalances = {}; // Очищаем полностью
@@ -296,7 +521,7 @@
                      infoDiv.innerHTML = `
                          <strong>${data.name}</strong>
                          <small>ID: ${idStr}</small>
-                         <div class="balance-line">Баланс: <strong>${formattedBalance}</strong></div>
+                         <div class="balance-line">Баланс: <span class="balance-amount">${formattedBalance}</span></div>
                          <div class="raw-balance-line">Базовых единиц: ${rawBalanceStr}</div>
                          ${data.error ? `<span class="metadata-error">Ошибка метаданных: ${data.error}</span>` : ''}
                      `;
