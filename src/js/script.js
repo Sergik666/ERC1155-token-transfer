@@ -163,11 +163,33 @@ function resetBalancesAndTransfer() {
     transferButton.disabled = true;
 }
 
+// Функция для безопасного получения URI с обработкой ошибок
+async function safeGetTokenUri(contract, tokenId) {
+    try {
+        // Проверяем, поддерживает ли контракт метод uri
+        const contractCode = await contract.provider.getCode(contract.address);
+        if (contractCode === '0x') {
+            throw new Error('Контракт не найден');
+        }
+
+        // Пытаемся вызвать uri() с обработкой исключений
+        const uri = await contract.uri(tokenId);
+        return uri;
+    } catch (error) {
+        // Логируем ошибку для отладки
+        console.warn(`Ошибка получения URI для токена ${tokenId}: ${error.message}`);
+        
+        // Возвращаем null, чтобы обработать отсутствие метаданных
+        return null;
+    }
+}
+
+// Улучшенная функция получения балансов с лучшей обработкой ошибок
 async function getBalances() {
     userAddress = userAddressInput.value;
     currentContractAddress = contractAddressInput.value.trim();
-    if (!ethers.utils.isAddress(currentContractAddress)) { /*...*/ return; }
-    if (!provider || !userAddress) { /*...*/ return; }
+    if (!ethers.utils.isAddress(currentContractAddress)) { return; }
+    if (!provider || !userAddress) { return; }
 
     logMessage(`Запрос балансов для контракта ${currentContractAddress}...`);
     balancesDiv.innerHTML = '<i>Загрузка балансов...</i>';
@@ -180,6 +202,7 @@ async function getBalances() {
         const limit = 500;
         const iterationCount = Math.round(ID_FETCH_LIMIT / limit);
 
+        // Получение балансов (этот код остается без изменений)
         for (let x = 0; x <= iterationCount; x++) {
             const idsToCheck = [];
             const accounts = [];
@@ -209,6 +232,7 @@ async function getBalances() {
 
         balancesDiv.innerHTML = `<i>Загрузка метаданных (${tokensWithBalance.length} токенов)...</i>`;
 
+        // Улучшенная обработка метаданных
         const metadataPromises = tokensWithBalance.map(async (token) => {
             const tokenId = token.id;
             const balance = token.balance;
@@ -218,47 +242,67 @@ async function getBalances() {
             let metadataError = null;
 
             try {
-                const rawUri = await contract.uri(tokenId);
-                const resolvedUri = resolveMetadataUri(rawUri, tokenId);
+                // Используем безопасную функцию получения URI
+                const rawUri = await safeGetTokenUri(contract, tokenId);
+                
+                if (rawUri) {
+                    const resolvedUri = resolveMetadataUri(rawUri, tokenId);
 
-                if (resolvedUri) {
-                    logMessage(`[ID: ${tokenId}] Запрос метаданных с ${resolvedUri}`);
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), METADATA_FETCH_TIMEOUT);
+                    if (resolvedUri) {
+                        logMessage(`[ID: ${tokenId}] Запрос метаданных с ${resolvedUri}`);
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), METADATA_FETCH_TIMEOUT);
 
-                    try {
-                        const response = await fetch(resolvedUri, { signal: controller.signal });
-                        clearTimeout(timeoutId);
+                        try {
+                            const response = await fetch(resolvedUri, { 
+                                signal: controller.signal,
+                                headers: {
+                                    'Accept': 'application/json',
+                                }
+                            });
+                            clearTimeout(timeoutId);
 
-                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            }
 
-                        const metadata = await response.json();
-                        name = metadata.name || name;
-                        imageUrl = metadata.image || metadata.image_url || metadata.imageUrl || null;
-                        if (imageUrl && imageUrl.startsWith('ipfs://')) {
-                            imageUrl = `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
+                            const contentType = response.headers.get('content-type');
+                            if (!contentType || !contentType.includes('application/json')) {
+                                throw new Error('Ответ не является JSON');
+                            }
+
+                            const metadata = await response.json();
+                            name = metadata.name || name;
+                            imageUrl = metadata.image || metadata.image_url || metadata.imageUrl || null;
+                            
+                            if (imageUrl && imageUrl.startsWith('ipfs://')) {
+                                imageUrl = `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
+                            }
+
+                            if (metadata.decimals !== undefined && Number.isInteger(metadata.decimals) && metadata.decimals >= 0) {
+                                decimals = metadata.decimals;
+                                logMessage(`[ID: ${tokenId}] Обнаружены decimals: ${decimals}`);
+                            } else {
+                                logMessage(`[ID: ${tokenId}] Decimals не найдены или некорректны в метаданных, используется 0.`);
+                            }
+
+                            logMessage(`[ID: ${tokenId}] Метаданные получены: Имя='${name}', Decimals=${decimals}`);
+
+                        } catch (fetchError) {
+                            clearTimeout(timeoutId);
+                            metadataError = `Ошибка загрузки метаданных: ${fetchError.message}`;
+                            logMessage(`[ID: ${tokenId}] Ошибка fetch: ${metadataError}`);
                         }
-
-                        if (metadata.decimals !== undefined && Number.isInteger(metadata.decimals) && metadata.decimals >= 0) {
-                            decimals = metadata.decimals;
-                            logMessage(`[ID: ${tokenId}] Обнаружены decimals: ${decimals}`);
-                        } else {
-                            logMessage(`[ID: ${tokenId}] Decimals не найдены или некорректны в метаданных, используется 0.`);
-                        }
-
-                        logMessage(`[ID: ${tokenId}] Метаданные получены: Имя='${name}', Decimals=${decimals}`);
-
-                    } catch (fetchError) {
-                        clearTimeout(timeoutId);
-                        metadataError = fetchError.message || 'Ошибка сети/CORS/JSON/Таймаут';
-                        logMessage(`[ID: ${tokenId}] Ошибка fetch: ${metadataError}`);
+                    } else {
+                        metadataError = 'URI невалиден после обработки';
+                        logMessage(`[ID: ${tokenId}] URI невалиден после обработки.`);
                     }
                 } else {
-                    metadataError = 'URI отсутствует/невалиден';
-                    logMessage(`[ID: ${tokenId}] URI метаданных отсутствует.`);
+                    metadataError = 'URI недоступен (метод uri() не реализован или возвращает ошибку)';
+                    logMessage(`[ID: ${tokenId}] URI метаданных недоступен.`);
                 }
             } catch (error) {
-                metadataError = error.message || 'Ошибка контракта/URI';
+                metadataError = `Ошибка контракта: ${error.message}`;
                 logMessage(`[ID: ${tokenId}] Ошибка получения URI: ${metadataError}`);
             }
 
@@ -272,11 +316,13 @@ async function getBalances() {
             };
         });
 
+        // Обрабатываем все промисы, даже если некоторые падают
         const metadataResults = await Promise.allSettled(metadataPromises);
 
         currentBalances = {};
         const balanceList = document.createElement('ul');
         let displayedCount = 0;
+        let errorCount = 0;
 
         metadataResults.forEach(result => {
             if (result.status === 'fulfilled') {
@@ -292,6 +338,10 @@ async function getBalances() {
                 };
                 displayedCount++;
 
+                if (data.error) {
+                    errorCount++;
+                }
+
                 const listItem = document.createElement('li');
 
                 const imageDiv = document.createElement('div');
@@ -302,7 +352,9 @@ async function getBalances() {
                     img.alt = data.name;
                     img.onerror = () => { imageDiv.innerHTML = '[Ошибка загр.]'; };
                     imageDiv.appendChild(img);
-                } else { imageDiv.textContent = '[Нет изобр.]'; }
+                } else { 
+                    imageDiv.textContent = '[Нет изобр.]'; 
+                }
 
                 const infoDiv = document.createElement('div');
                 infoDiv.classList.add('token-info');
@@ -320,14 +372,13 @@ async function getBalances() {
                     formattedBalance = 'Ошибка!';
                 }
 
-
                 infoDiv.innerHTML = `
-                         <strong>${data.name}</strong>
-                         <small>ID: ${idStr}</small>
-                         <div class="balance-line">Баланс: <span class="balance-amount">${formattedBalance}</span></div>
-                         <div class="raw-balance-line">Базовых единиц: ${rawBalanceStr}</div>
-                         ${data.error ? `<span class="metadata-error">Ошибка метаданных: ${data.error}</span>` : ''}
-                     `;
+                    <strong>${data.name}</strong>
+                    <small>ID: ${idStr}</small>
+                    <div class="balance-line">Баланс: <span class="balance-amount">${formattedBalance}</span></div>
+                    <div class="raw-balance-line">Базовых единиц: ${rawBalanceStr}</div>
+                    ${data.error ? `<span class="metadata-error">⚠️ ${data.error}</span>` : ''}
+                `;
 
                 const transferDiv = document.createElement('div');
                 transferDiv.classList.add('token-transfer');
@@ -345,6 +396,7 @@ async function getBalances() {
                 balanceList.appendChild(listItem);
 
             } else {
+                errorCount++;
                 logMessage(`Критическая ошибка обработки промиса метаданных: ${result.reason}`);
             }
         });
@@ -353,7 +405,28 @@ async function getBalances() {
             balancesDiv.innerHTML = '';
             balancesDiv.appendChild(balanceList);
             transferButton.disabled = false;
-            logMessage(`Отображены балансы и метаданные для ${displayedCount} токенов.`);
+            
+            const statusMessage = `Отображены балансы для ${displayedCount} токенов` + 
+                                (errorCount > 0 ? ` (${errorCount} с ошибками метаданных)` : '');
+            logMessage(statusMessage);
+            
+            // Добавляем информационное сообщение если есть ошибки
+            if (errorCount > 0) {
+                const warningDiv = document.createElement('div');
+                warningDiv.className = 'metadata-warning';
+                warningDiv.innerHTML = `
+                    <p><strong>⚠️ Внимание:</strong> Для ${errorCount} токенов не удалось получить метаданные. 
+                    Это может происходить по следующим причинам:</p>
+                    <ul>
+                        <li>Контракт не реализует метод uri() для некоторых токенов</li>
+                        <li>Метаданные недоступны по указанному URI</li>
+                        <li>Проблемы с CORS или сетевые ошибки</li>
+                        <li>Таймаут загрузки метаданных</li>
+                    </ul>
+                    <p>Токены остаются функциональными для переводов.</p>
+                `;
+                balancesDiv.insertBefore(warningDiv, balanceList);
+            }
         } else {
             balancesDiv.innerHTML = 'Не удалось получить метаданные ни для одного токена.';
             logMessage('Не удалось получить метаданные ни для одного токена.');
@@ -366,6 +439,26 @@ async function getBalances() {
         transferButton.disabled = true;
     } finally {
         getBalanceButton.disabled = false;
+    }
+}
+
+// Дополнительная функция для проверки поддержки интерфейсов контрактом
+async function checkContractSupport(contract) {
+    try {
+        // ERC-165 interface detection
+        const ERC1155_INTERFACE_ID = '0xd9b67a26'; // ERC-1155
+        const ERC1155_METADATA_INTERFACE_ID = '0x0e89341c'; // ERC-1155 Metadata Extension
+        
+        const supportsERC1155 = await contract.supportsInterface(ERC1155_INTERFACE_ID);
+        const supportsMetadata = await contract.supportsInterface(ERC1155_METADATA_INTERFACE_ID);
+        
+        logMessage(`Контракт поддерживает ERC-1155: ${supportsERC1155}`);
+        logMessage(`Контракт поддерживает ERC-1155 Metadata: ${supportsMetadata}`);
+        
+        return { supportsERC1155, supportsMetadata };
+    } catch (error) {
+        logMessage(`Не удалось проверить поддержку интерфейсов: ${error.message}`);
+        return { supportsERC1155: true, supportsMetadata: false }; // предполагаем базовую поддержку
     }
 }
 
