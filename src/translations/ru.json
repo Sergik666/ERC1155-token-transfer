@@ -1,0 +1,8 @@
+{
+    "The page is loaded. Waiting for wallet connection.": "Страница загружена. Ожидание подключения кошелька.",
+    "Connect Wallet": "Подключить кошелек",
+    "Attempting to connect wallet...": "Попытка подключения кошелька...",
+    "Error: Web3 wallet is not installed!": "Ошибка: Web3 кошелек не установлен!",
+    "Wallet connected:": "Кошелек подключен:",
+    "Connection error:": "Ошибка подключения:"
+}

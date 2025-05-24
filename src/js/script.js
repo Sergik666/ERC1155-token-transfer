@@ -551,7 +551,7 @@ async function transferTokens() {
 
 window.addEventListener('load', () => {
     const logger = fullLogger;
-    logger.message('Страница загружена. Ожидание подключения кошелька.');
+    logger.message(t('The page is loaded. Waiting for wallet connection.'));
     connectButton.addEventListener('click', () => { connectWalletUI(logger);});
     getBalanceButton.addEventListener('click', getBalances);
     transferButton.addEventListener('click', transferTokens);

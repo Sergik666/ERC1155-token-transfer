@@ -11,9 +11,13 @@
 <body>
 
     <div class="container">
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="changeLanguage('en')">English</button>
+            <button class="lang-btn" onclick="changeLanguage('ru')">Русский</button>
+        </div>
         <h1>ERC-1155 Инструмент (Polygon)</h1>
 
-        <button id="connectButton">Подключить MetaMask</button>
+        <button id="connectButton" data-translate="Connect Wallet">Connect Wallet</button>
         <div id="status">Статус: Не подключен</div>
         <label for="userAddress">Адрес:</label>
         <input type="text" id="userAddress" placeholder="0x...">
@@ -49,6 +53,7 @@
 </body>
 
 <script src="js/ethers.umd.min.js"></script>
+<script src="js/translator.js"></script>
 <script src="js/logger.js"></script>
 <script src="js/web3.js"></script>
 <script src="js/script.js"></script>
