@@ -4,24 +4,25 @@ let isLoading = false;
 
 const languages = {
     'en': 'English',
-    'ru': 'Русский', 
+    'ru': 'Русский',
+    'uk': 'Українська',
 };
 
 async function loadTranslations(lang) {
     if (isLoading) return;
-    
+
     if (lang === 'en') {
         translations[lang] = {};
         return;
     }
-    
+
     if (translations[lang]) {
         return;
     }
-    
+
     isLoading = true;
     document.body.classList.add('loading');
-    
+
     try {
         const response = await fetch(`translations/${lang}.json`);
         if (response.ok) {
@@ -41,26 +42,26 @@ async function loadTranslations(lang) {
 
 async function changeLanguage(lang) {
     if (isLoading || currentLanguage === lang) return;
-    
+
     currentLanguage = lang;
-    
+
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
-    
+
     await loadTranslations(lang);
-    
+
     applyTranslations();
-    
+
     localStorage.setItem('selectedLanguage', lang);
-    
+
     document.documentElement.lang = lang;
 }
 
 function applyTranslations() {
     const elements = document.querySelectorAll('[data-translate]');
-    
+
     elements.forEach(element => {
         const key = element.getAttribute('data-translate');
         const translation = getTranslation(key);
@@ -72,9 +73,9 @@ function getTranslation(key) {
     if (currentLanguage === 'en') {
         return key;
     }
-    
-    return translations[currentLanguage] && translations[currentLanguage][key] 
-        ? translations[currentLanguage][key] 
+
+    return translations[currentLanguage] && translations[currentLanguage][key]
+        ? translations[currentLanguage][key]
         : key;
 }
 
@@ -88,22 +89,23 @@ function setActiveLanguageButton(lang) {
         btn.classList.remove('active');
         const btnText = btn.textContent.trim();
         if ((lang === 'en' && btnText === 'English') ||
+            (lang === 'uk' && btnText === 'Українська') ||
             (lang === 'ru' && btnText === 'Русский')) {
             btn.classList.add('active');
         }
     });
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     const savedLanguage = localStorage.getItem('selectedLanguage');
     if (savedLanguage && languages[savedLanguage]) {
         currentLanguage = savedLanguage;
         setActiveLanguageButton(savedLanguage);
         document.documentElement.lang = savedLanguage;
     }
-    
+
     await loadTranslations(currentLanguage);
-    
+
     applyTranslations();
 });
 

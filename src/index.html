@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERC-1155 Балансы и Перевод (Polygon)</title>
+    <title>ERC-1155 Token transfer</title>
     <link rel="stylesheet" href="css/style.css" />
 </head>
 
@@ -13,39 +13,46 @@
     <div class="container">
         <div class="language-switcher">
             <button class="lang-btn active" onclick="changeLanguage('en')">English</button>
+            <button class="lang-btn" onclick="changeLanguage('uk')">Українська</button>
             <button class="lang-btn" onclick="changeLanguage('ru')">Русский</button>
         </div>
-        <h1>ERC-1155 Инструмент (Polygon)</h1>
+        <h1>ERC-1155 Token transfer</h1>
 
         <button id="connectButton" data-translate="Connect Wallet">Connect Wallet</button>
-        <div id="status">Статус: Не подключен</div>
-        <label for="userAddress">Адрес:</label>
+        <div id="status"></div>
+        <label for="userAddress"><span data-translate="Address">Address</span>:</label>
         <input type="text" id="userAddress" placeholder="0x...">
 
         <hr style="margin: 20px 0;">
 
-        <label for="contractAddress">Адрес контракта ERC-1155 (Polygon):</label>
+        <label for="contractAddress"><span data-translate="Contract address">Contract address</span> ERC-1155:</label>
         <input type="text" id="contractAddress" placeholder="0x...">
 
-        <button id="getBalanceButton" disabled>Получить балансы и метаданные</button>
+        <button id="getBalanceButton" disabled data-translate="Get balances and metadata">Get balances and
+            metadata</button>
 
-        <h2>Балансы токенов (ID 0-5000 с балансом > 0):</h2>
-        <div id="balances">Нет данных</div>
+        <h2><span data-translate="Token balances">Token balances</span> (ID 0-5000):</h2>
+        <div id="balances" data-translate="No data">No data</div>
 
         <hr style="margin: 20px 0;">
 
-        <h2>Перевод токенов</h2>
-        <label for="recipientAddress">Адрес получателя:</label>
+        <h2 data-translate="Token transfer">Token transfer</h2>
+        <label for="recipientAddress"><span data-translate="Recipient address">Recipient address</span>:</label>
         <input type="text" id="recipientAddress" placeholder="0x...">
 
         <div id="transferSection" style="margin-top: 10px;">
-            <p>Укажите количество для перевода рядом с токеном выше.</p>
+            <p data-translate="Specify the amount to transfer next to the token above.">
+                Specify the amount to transfer next to the token above.</p>
         </div>
 
-        <button id="transferButton" disabled>Перевести выбранные токены (safeBatchTransferFrom)</button>
+        <button id="transferButton" disabled>
+            <span data-translate="Transfer selected tokens">
+                Transfer selected tokens</span> (safeBatchTransferFrom)
+        </button>
+
         <div id="transferStatus" style="margin-top: 10px;"></div>
         <div id="log">
-            <h3>Лог:</h3>
+            <h3><span data-translate="Log">Log</span>:</h3>
             <pre id="logContent"></pre>
         </div>
     </div>
