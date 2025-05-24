@@ -9,9 +9,6 @@ const recipientAddressInput = document.getElementById('recipientAddress');
 const transferStatusDiv = document.getElementById('transferStatus');
 const logContent = document.getElementById('logContent');
 
-const POLYGON_CHAIN_ID = '0x89'; // 137 в hex
-const POLYGON_RPC_URL = 'https://polygon-rpc.com/';
-const POLYGON_EXPLORER = 'https://polygonscan.com/';
 const ID_FETCH_LIMIT = 5000;
 const METADATA_FETCH_TIMEOUT = 10000;
 
@@ -20,12 +17,6 @@ let signer;
 let userAddress;
 let currentContractAddress;
 let currentBalances = {}; // { idString: balanceString }
-
-const erc1155Abi = [
-    "function balanceOfBatch(address[] memory accounts, uint256[] memory ids) public view returns (uint256[] memory)",
-    "function safeBatchTransferFrom(address from, address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public",
-    "function uri(uint256 _id) public view returns (string memory)"
-];
 
 const fullLogger = createLogger({
     logToConsole: true,
@@ -44,7 +35,6 @@ async function connectWalletUI(logger) {
             return;
         }
         await switchToPolygon(logger);
-        logger.message('Статус: Подключен к Polygon');
         userAddressInput.value = userAddress;
         connectButton.textContent = 'Кошелек подключен';
         connectButton.disabled = true;
@@ -53,40 +43,6 @@ async function connectWalletUI(logger) {
         window.ethereum.on('chainChanged', handleChainChanged);
     } catch (error) {
         logger.error(`Ошибка подключения: ${error.message || error}`);
-    }
-}
-
-async function switchToPolygon(logger) {
-    logger.debug('Проверка сети...');
-    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    if (chainId !== POLYGON_CHAIN_ID) {
-        logger.message(`Требуется переключение на Polygon (${POLYGON_CHAIN_ID})`);
-        try {
-            await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_CHAIN_ID }], });
-            logger.message('Успешно переключено к Polygon.');
-        } catch (switchError) {
-            if (switchError.code === 4902) {
-                logger.debug('Сеть Polygon не найдена, попытка добавить...');
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{ chainId: POLYGON_CHAIN_ID, chainName: 'Polygon Mainnet', rpcUrls: [POLYGON_RPC_URL], nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18, }, blockExplorerUrls: [POLYGON_EXPLORER], }],
-                    });
-                    logger.debug('Сеть Polygon добавлена. Повторная попытка переключения...');
-                    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_CHAIN_ID }], });
-                    logger.debug('Успешно переключено на Polygon.');
-                    statusDiv.textContent = 'Статус: Подключен к Polygon';
-                } catch (addError) {
-                    logger.error(`Ошибка добавления/переключения сети Polygon: ${addError.message || addError}`);
-                    throw addError;
-                }
-            } else {
-                logger.error(`Ошибка переключения сети: ${switchError.message || switchError}`);
-                throw switchError;
-            }
-        }
-    } else {
-        logger.debug('Уже подключены к сети Polygon.');
     }
 }
 
