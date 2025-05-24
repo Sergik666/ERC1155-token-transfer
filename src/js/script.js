@@ -47,12 +47,19 @@ async function connectWalletUI(logger) {
 }
 
 function handleAccountsChanged(accounts) {
-    if (accounts.length === 0) { logMessage('Кошелек отключен.'); resetApp(); }
+    if (accounts.length === 0) {
+        logMessage('Кошелек отключен.');
+        resetApp();
+    }
     else {
-        userAddress = accounts[0]; logMessage(`Аккаунт изменен: ${userAddress}`);
+        userAddress = accounts[0];
+        logMessage(`Аккаунт изменен: ${userAddress}`);
         userAddressInput.value = userAddress;
-        signer = provider.getSigner(); resetBalancesAndTransfer();
-        if (currentContractAddress) { getBalances(); }
+        signer = provider.getSigner();
+        resetBalancesAndTransfer();
+        if (currentContractAddress) {
+            getBalances();
+        }
     }
 }
 function handleChainChanged(chainId) {
@@ -60,33 +67,50 @@ function handleChainChanged(chainId) {
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
     if (chainId !== POLYGON_CHAIN_ID) {
-        logMessage('Предупреждение: Выбрана неверная сеть.'); statusDiv.textContent = 'Статус: Подключена неверная сеть!'; statusDiv.style.color = 'orange';
-        resetBalancesAndTransfer(); getBalanceButton.disabled = true;
+        logMessage('Предупреждение: Выбрана неверная сеть.');
+        statusDiv.textContent = 'Статус: Подключена неверная сеть!';
+        statusDiv.style.color = 'orange';
+        resetBalancesAndTransfer();
+        getBalanceButton.disabled = true;
     } else {
-        logMessage('Подключено к сети Polygon.'); statusDiv.textContent = 'Статус: Подключен к Polygon'; statusDiv.style.color = 'green';
+        logMessage('Подключено к сети Polygon.');
+        statusDiv.textContent = 'Статус: Подключен к Polygon';
+        statusDiv.style.color = 'green';
         getBalanceButton.disabled = !userAddress;
-        if (currentContractAddress && userAddress) { getBalances(); }
+        if (currentContractAddress && userAddress) {
+            getBalances();
+        }
     }
 }
 function resetApp() {
-    statusDiv.textContent = 'Статус: Не подключен'; statusDiv.style.color = 'black';
+    statusDiv.textContent = 'Статус: Не подключен';
+    statusDiv.style.color = 'black';
     userAddressInput.value = '';
-    connectButton.textContent = 'Подключить MetaMask'; connectButton.disabled = false;
-    getBalanceButton.disabled = true; transferButton.disabled = true;
-    contractAddressInput.value = ''; recipientAddressInput.value = '';
-    currentContractAddress = null; userAddress = null; provider = null; signer = null;
-    resetBalancesAndTransfer(); logContent.textContent = '';
+    connectButton.textContent = 'Подключить MetaMask';
+    connectButton.disabled = false;
+    getBalanceButton.disabled = true;
+    transferButton.disabled = true;
+    contractAddressInput.value = '';
+    recipientAddressInput.value = '';
+    currentContractAddress = null;
+    userAddress = null;
+    provider = null;
+    signer = null;
+    resetBalancesAndTransfer();
+    logContent.textContent = '';
 }
 
 function resetBalancesAndTransfer() {
-    balancesDiv.innerHTML = 'Нет данных';
+    balancesDiv.innerHTML = t('No data');
     transferStatusDiv.textContent = '';
     currentBalances = {};
     transferButton.disabled = true;
 }
 
 function resolveMetadataUri(uri, tokenId) {
-    if (!uri) return null;
+    if (!uri) {
+        return null;
+    }
 
     if (uri.includes('{id}')) {
         const hexId = ethers.BigNumber.from(tokenId).toHexString().substring(2).padStart(64, '0');
@@ -101,34 +125,28 @@ function resolveMetadataUri(uri, tokenId) {
 }
 
 function resetBalancesAndTransfer() {
-    balancesDiv.innerHTML = 'Нет данных';
+    balancesDiv.innerHTML = t('No data');
     transferStatusDiv.textContent = '';
     currentBalances = {};
     transferButton.disabled = true;
 }
 
-// Функция для безопасного получения URI с обработкой ошибок
 async function safeGetTokenUri(contract, tokenId) {
     try {
-        // Проверяем, поддерживает ли контракт метод uri
         const contractCode = await contract.provider.getCode(contract.address);
         if (contractCode === '0x') {
             throw new Error('Контракт не найден');
         }
 
-        // Пытаемся вызвать uri() с обработкой исключений
         const uri = await contract.uri(tokenId);
         return uri;
     } catch (error) {
-        // Логируем ошибку для отладки
         console.warn(`Ошибка получения URI для токена ${tokenId}: ${error.message}`);
-        
-        // Возвращаем null, чтобы обработать отсутствие метаданных
+
         return null;
     }
 }
 
-// Улучшенная функция получения балансов с лучшей обработкой ошибок
 async function getBalances() {
     userAddress = userAddressInput.value;
     currentContractAddress = contractAddressInput.value.trim();
@@ -146,7 +164,6 @@ async function getBalances() {
         const limit = 500;
         const iterationCount = Math.round(ID_FETCH_LIMIT / limit);
 
-        // Получение балансов (этот код остается без изменений)
         for (let x = 0; x <= iterationCount; x++) {
             const idsToCheck = [];
             const accounts = [];
@@ -176,7 +193,6 @@ async function getBalances() {
 
         balancesDiv.innerHTML = `<i>Загрузка метаданных (${tokensWithBalance.length} токенов)...</i>`;
 
-        // Улучшенная обработка метаданных
         const metadataPromises = tokensWithBalance.map(async (token) => {
             const tokenId = token.id;
             const balance = token.balance;
@@ -186,9 +202,8 @@ async function getBalances() {
             let metadataError = null;
 
             try {
-                // Используем безопасную функцию получения URI
                 const rawUri = await safeGetTokenUri(contract, tokenId);
-                
+
                 if (rawUri) {
                     const resolvedUri = resolveMetadataUri(rawUri, tokenId);
 
@@ -198,7 +213,7 @@ async function getBalances() {
                         const timeoutId = setTimeout(() => controller.abort(), METADATA_FETCH_TIMEOUT);
 
                         try {
-                            const response = await fetch(resolvedUri, { 
+                            const response = await fetch(resolvedUri, {
                                 signal: controller.signal,
                                 headers: {
                                     'Accept': 'application/json',
@@ -218,7 +233,7 @@ async function getBalances() {
                             const metadata = await response.json();
                             name = metadata.name || name;
                             imageUrl = metadata.image || metadata.image_url || metadata.imageUrl || null;
-                            
+
                             if (imageUrl && imageUrl.startsWith('ipfs://')) {
                                 imageUrl = `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
                             }
@@ -260,7 +275,6 @@ async function getBalances() {
             };
         });
 
-        // Обрабатываем все промисы, даже если некоторые падают
         const metadataResults = await Promise.allSettled(metadataPromises);
 
         currentBalances = {};
@@ -296,8 +310,8 @@ async function getBalances() {
                     img.alt = data.name;
                     img.onerror = () => { imageDiv.innerHTML = '[Ошибка загр.]'; };
                     imageDiv.appendChild(img);
-                } else { 
-                    imageDiv.textContent = '[Нет изобр.]'; 
+                } else {
+                    imageDiv.textContent = '[Нет изобр.]';
                 }
 
                 const infoDiv = document.createElement('div');
@@ -349,12 +363,11 @@ async function getBalances() {
             balancesDiv.innerHTML = '';
             balancesDiv.appendChild(balanceList);
             transferButton.disabled = false;
-            
-            const statusMessage = `Отображены балансы для ${displayedCount} токенов` + 
-                                (errorCount > 0 ? ` (${errorCount} с ошибками метаданных)` : '');
+
+            const statusMessage = `Отображены балансы для ${displayedCount} токенов` +
+                (errorCount > 0 ? ` (${errorCount} с ошибками метаданных)` : '');
             logMessage(statusMessage);
-            
-            // Добавляем информационное сообщение если есть ошибки
+
             if (errorCount > 0) {
                 const warningDiv = document.createElement('div');
                 warningDiv.className = 'metadata-warning';
@@ -386,19 +399,18 @@ async function getBalances() {
     }
 }
 
-// Дополнительная функция для проверки поддержки интерфейсов контрактом
 async function checkContractSupport(contract) {
     try {
         // ERC-165 interface detection
         const ERC1155_INTERFACE_ID = '0xd9b67a26'; // ERC-1155
         const ERC1155_METADATA_INTERFACE_ID = '0x0e89341c'; // ERC-1155 Metadata Extension
-        
+
         const supportsERC1155 = await contract.supportsInterface(ERC1155_INTERFACE_ID);
         const supportsMetadata = await contract.supportsInterface(ERC1155_METADATA_INTERFACE_ID);
-        
+
         logMessage(`Контракт поддерживает ERC-1155: ${supportsERC1155}`);
         logMessage(`Контракт поддерживает ERC-1155 Metadata: ${supportsMetadata}`);
-        
+
         return { supportsERC1155, supportsMetadata };
     } catch (error) {
         logMessage(`Не удалось проверить поддержку интерфейсов: ${error.message}`);
@@ -508,7 +520,7 @@ async function transferTokens() {
 window.addEventListener('load', () => {
     const logger = fullLogger;
     logger.message(t('The page is loaded. Waiting for wallet connection.'));
-    connectButton.addEventListener('click', () => { connectWalletUI(logger);});
+    connectButton.addEventListener('click', () => { connectWalletUI(logger); });
     getBalanceButton.addEventListener('click', getBalances);
     transferButton.addEventListener('click', transferTokens);
 });
