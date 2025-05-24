@@ -12,7 +12,7 @@ const logContent = document.getElementById('logContent');
 const POLYGON_CHAIN_ID = '0x89'; // 137 в hex
 const POLYGON_RPC_URL = 'https://polygon-rpc.com/';
 const POLYGON_EXPLORER = 'https://polygonscan.com/';
-const ID_FETCH_LIMIT = 2000;
+const ID_FETCH_LIMIT = 5000;
 const METADATA_FETCH_TIMEOUT = 10000;
 
 let provider;
@@ -171,27 +171,34 @@ async function getBalances() {
     logMessage(`Запрос балансов для контракта ${currentContractAddress}...`);
     balancesDiv.innerHTML = '<i>Загрузка балансов...</i>';
     getBalanceButton.disabled = true;
-    resetBalancesAndTransfer(); 
+    resetBalancesAndTransfer();
 
     try {
         const contract = new ethers.Contract(currentContractAddress, erc1155Abi, provider);
-        const idsToCheck = [];
-        const accounts = [];
-        for (let i = 0; i <= ID_FETCH_LIMIT + 0; i++) {
-            idsToCheck.push(ethers.BigNumber.from(i));
-            accounts.push(userAddress);
-        }
-
-        logMessage(`Вызов balanceOfBatch для ID 0-${ID_FETCH_LIMIT}...`);
-        const balancesBigNum = await contract.balanceOfBatch(accounts, idsToCheck);
-        logMessage('Балансы получены. Запрос метаданных...');
-
         const tokensWithBalance = [];
-        balancesBigNum.forEach((balance, index) => {
-            if (!balance.isZero()) {
-                tokensWithBalance.push({ id: idsToCheck[index], balance: balance });
+        const limit = 500;
+        const iterationCount = Math.round(ID_FETCH_LIMIT / limit);
+
+        for (let x = 0; x <= iterationCount; x++) {
+            const idsToCheck = [];
+            const accounts = [];
+            const rangeFrom = x * limit;
+            const rangeTo = Math.min(limit * (x + 1), ID_FETCH_LIMIT);
+            for (let i = rangeFrom; i <= rangeTo; i++) {
+                idsToCheck.push(ethers.BigNumber.from(i));
+                accounts.push(userAddress);
             }
-        });
+
+            logMessage(`Вызов balanceOfBatch для ID ${rangeFrom}-${rangeTo}...`);
+            const balancesBigNum = await contract.balanceOfBatch(accounts, idsToCheck);
+            logMessage('Балансы получены. Запрос метаданных...');
+
+            balancesBigNum.forEach((balance, index) => {
+                if (!balance.isZero()) {
+                    tokensWithBalance.push({ id: idsToCheck[index], balance: balance });
+                }
+            });
+        }
 
         if (tokensWithBalance.length === 0) {
             balancesDiv.innerHTML = `Нет токенов с балансом > 0 в диапазоне ID 0-${ID_FETCH_LIMIT}.`;
@@ -336,7 +343,7 @@ async function getBalances() {
                 listItem.appendChild(transferDiv);
                 balanceList.appendChild(listItem);
 
-            } else { 
+            } else {
                 logMessage(`Критическая ошибка обработки промиса метаданных: ${result.reason}`);
             }
         });
@@ -379,7 +386,7 @@ async function transferTokens() {
         input.style.borderColor = '';
 
         if (amountStr && parseFloat(amountStr) > 0) {
-            const tokenData = currentBalances[idStr]; 
+            const tokenData = currentBalances[idStr];
             if (!tokenData) {
                 logMessage(`[Transfer Error] Не найдены данные для ID ${idStr} в currentBalances.`);
                 inputError = true;
