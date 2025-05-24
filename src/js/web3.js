@@ -24,7 +24,7 @@ async function connectWeb3Wallet(logger) {
     }
 }
 
-const POLYGON_CHAIN_ID = '0x89'; // 137 в hex
+const POLYGON_CHAIN_ID = '0x89'; // 137 in hex
 const POLYGON_RPC_URL = 'https://polygon-rpc.com/';
 const POLYGON_EXPLORER = 'https://polygonscan.com/';
 

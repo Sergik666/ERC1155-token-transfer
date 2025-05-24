@@ -24,5 +24,6 @@
     "Specify the amount to transfer next to the token above.": "Укажите количество для перевода рядом с токеном выше.",
     "Transfer selected tokens": "Перевести выбранные токены",
     "Log": "Лог",
+    "Not connected": "Не подключен",
     "Connection error": "Ошибка подключения"
 }

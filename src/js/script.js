@@ -48,7 +48,7 @@ async function connectWalletUI(logger) {
 
 function handleAccountsChanged(accounts) {
     if (accounts.length === 0) {
-        logMessage('Кошелек отключен.');
+        logMessage(t('Wallet connected'));
         resetApp();
     }
     else {
@@ -83,10 +83,10 @@ function handleChainChanged(chainId) {
     }
 }
 function resetApp() {
-    statusDiv.textContent = 'Статус: Не подключен';
+    statusDiv.textContent = t('Not connected');
     statusDiv.style.color = 'black';
     userAddressInput.value = '';
-    connectButton.textContent = 'Подключить MetaMask';
+    connectButton.textContent = t('Connect Wallet');
     connectButton.disabled = false;
     getBalanceButton.disabled = true;
     transferButton.disabled = true;
