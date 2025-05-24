@@ -2,7 +2,7 @@ const connectButton = document.getElementById('connectButton');
 const getBalanceButton = document.getElementById('getBalanceButton');
 const transferButton = document.getElementById('transferButton');
 const statusDiv = document.getElementById('status');
-const walletAddressDiv = document.getElementById('walletAddress');
+const userAddressInput = document.getElementById('userAddress');
 const contractAddressInput = document.getElementById('contractAddress');
 const balancesDiv = document.getElementById('balances');
 const recipientAddressInput = document.getElementById('recipientAddress');
@@ -51,7 +51,7 @@ async function connectWallet() {
         await switchToPolygon();
         statusDiv.textContent = 'Статус: Подключен к Polygon';
         statusDiv.style.color = 'green';
-        walletAddressDiv.textContent = `Адрес кошелька: ${userAddress}`;
+        userAddressInput.value = userAddress;
         connectButton.textContent = 'Кошелек подключен';
         connectButton.disabled = true;
         getBalanceButton.disabled = false;
@@ -106,7 +106,7 @@ function handleAccountsChanged(accounts) {
     if (accounts.length === 0) { logMessage('Кошелек отключен.'); resetApp(); }
     else {
         userAddress = accounts[0]; logMessage(`Аккаунт изменен: ${userAddress}`);
-        walletAddressDiv.textContent = `Адрес кошелька: ${userAddress}`;
+        userAddressInput.value = userAddress;
         signer = provider.getSigner(); resetBalancesAndTransfer();
         if (currentContractAddress) { getBalances(); }
     }
@@ -126,7 +126,7 @@ function handleChainChanged(chainId) {
 }
 function resetApp() {
     statusDiv.textContent = 'Статус: Не подключен'; statusDiv.style.color = 'black';
-    walletAddressDiv.textContent = 'Адрес кошелька: -';
+    userAddressInput.value = '';
     connectButton.textContent = 'Подключить MetaMask'; connectButton.disabled = false;
     getBalanceButton.disabled = true; transferButton.disabled = true;
     contractAddressInput.value = ''; recipientAddressInput.value = '';
@@ -164,6 +164,7 @@ function resetBalancesAndTransfer() {
 }
 
 async function getBalances() {
+    userAddress = userAddressInput.value;
     currentContractAddress = contractAddressInput.value.trim();
     if (!ethers.utils.isAddress(currentContractAddress)) { /*...*/ return; }
     if (!provider || !userAddress) { /*...*/ return; }
