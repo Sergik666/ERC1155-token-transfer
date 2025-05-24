@@ -36,13 +36,13 @@ async function connectWalletUI(logger) {
         }
         await switchToPolygon(logger);
         userAddressInput.value = userAddress;
-        connectButton.textContent = 'Кошелек подключен';
+        connectButton.textContent = t('Wallet connected');
         connectButton.disabled = true;
         getBalanceButton.disabled = false;
         window.ethereum.on('accountsChanged', handleAccountsChanged);
         window.ethereum.on('chainChanged', handleChainChanged);
     } catch (error) {
-        logger.error(`Ошибка подключения: ${error.message || error}`);
+        logger.error(`${t('Connection error')}: ${error.message || error}`);
     }
 }
 
