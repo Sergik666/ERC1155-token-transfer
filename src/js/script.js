@@ -27,30 +27,24 @@ const erc1155Abi = [
     "function uri(uint256 _id) public view returns (string memory)"
 ];
 
+const fullLogger = createLogger({
+    logToConsole: true,
+    logContent: logContent,
+    statusDiv: statusDiv,
+});
+
 function logMessage(message) {
-    console.log(message);
-    const timestamp = new Date().toLocaleTimeString();
-    logContent.textContent += `[${timestamp}] ${message}\n`;
-    logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
+    fullLogger.message(message);
 }
 
-async function connectWallet() {
-    logMessage('Попытка подключения кошелька...');
-    if (typeof window.ethereum === 'undefined') {
-        logMessage('Ошибка: MetaMask не установлен!');
-        statusDiv.textContent = 'Ошибка: MetaMask не установлен!';
-        alert('Пожалуйста, установите MetaMask!');
-        return;
-    }
+async function connectWalletUI(logger) {
     try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        userAddress = accounts[0];
-        logMessage(`Кошелек подключен: ${userAddress}`);
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        await switchToPolygon();
-        statusDiv.textContent = 'Статус: Подключен к Polygon';
-        statusDiv.style.color = 'green';
+        signer = connectWeb3Wallet(logger);
+        if (!signer) {
+            return;
+        }
+        await switchToPolygon(logger);
+        logger.message('Статус: Подключен к Polygon');
         userAddressInput.value = userAddress;
         connectButton.textContent = 'Кошелек подключен';
         connectButton.disabled = true;
@@ -58,47 +52,41 @@ async function connectWallet() {
         window.ethereum.on('accountsChanged', handleAccountsChanged);
         window.ethereum.on('chainChanged', handleChainChanged);
     } catch (error) {
-        logMessage(`Ошибка подключения: ${error.message || error}`);
-        statusDiv.textContent = `Ошибка подключения: ${error.message || error}`;
-        statusDiv.style.color = 'red';
+        logger.error(`Ошибка подключения: ${error.message || error}`);
     }
 }
 
-async function switchToPolygon() {
-    logMessage('Проверка сети...');
+async function switchToPolygon(logger) {
+    logger.debug('Проверка сети...');
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
     if (chainId !== POLYGON_CHAIN_ID) {
-        logMessage(`Требуется переключение на Polygon (${POLYGON_CHAIN_ID})`);
-        statusDiv.textContent = 'Требуется переключение на Polygon...';
+        logger.message(`Требуется переключение на Polygon (${POLYGON_CHAIN_ID})`);
         try {
             await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_CHAIN_ID }], });
-            logMessage('Успешно переключено на Polygon.');
-            statusDiv.textContent = 'Статус: Подключен к Polygon';
+            logger.message('Успешно переключено к Polygon.');
         } catch (switchError) {
             if (switchError.code === 4902) {
-                logMessage('Сеть Polygon не найдена, попытка добавить...');
+                logger.debug('Сеть Polygon не найдена, попытка добавить...');
                 try {
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
                         params: [{ chainId: POLYGON_CHAIN_ID, chainName: 'Polygon Mainnet', rpcUrls: [POLYGON_RPC_URL], nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18, }, blockExplorerUrls: [POLYGON_EXPLORER], }],
                     });
-                    logMessage('Сеть Polygon добавлена. Повторная попытка переключения...');
+                    logger.debug('Сеть Polygon добавлена. Повторная попытка переключения...');
                     await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: POLYGON_CHAIN_ID }], });
-                    logMessage('Успешно переключено на Polygon.');
+                    logger.debug('Успешно переключено на Polygon.');
                     statusDiv.textContent = 'Статус: Подключен к Polygon';
                 } catch (addError) {
-                    logMessage(`Ошибка добавления/переключения сети Polygon: ${addError.message || addError}`);
-                    statusDiv.textContent = `Ошибка сети: ${addError.message || addError}`;
+                    logger.error(`Ошибка добавления/переключения сети Polygon: ${addError.message || addError}`);
                     throw addError;
                 }
             } else {
-                logMessage(`Ошибка переключения сети: ${switchError.message || switchError}`);
-                statusDiv.textContent = `Ошибка переключения сети: ${switchError.message || switchError}`;
+                logger.error(`Ошибка переключения сети: ${switchError.message || switchError}`);
                 throw switchError;
             }
         }
     } else {
-        logMessage('Уже подключены к сети Polygon.');
+        logger.debug('Уже подключены к сети Polygon.');
     }
 }
 
@@ -562,8 +550,9 @@ async function transferTokens() {
 }
 
 window.addEventListener('load', () => {
-    logMessage('Страница загружена. Ожидание подключения кошелька.');
-    connectButton.addEventListener('click', connectWallet);
+    const logger = fullLogger;
+    logger.message('Страница загружена. Ожидание подключения кошелька.');
+    connectButton.addEventListener('click', () => { connectWalletUI(logger);});
     getBalanceButton.addEventListener('click', getBalances);
     transferButton.addEventListener('click', transferTokens);
 });
