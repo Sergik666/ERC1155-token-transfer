@@ -249,20 +249,24 @@ async function getBalances() {
 
                         } catch (fetchError) {
                             clearTimeout(timeoutId);
-                            metadataError = `Ошибка загрузки метаданных: ${fetchError.message}`;
-                            logMessage(`[ID: ${tokenId}] Ошибка fetch: ${metadataError}`);
+                            // При ошибке fetch в метаданных
+                            metadataError = `${t('Error loading metadata')}: ${fetchError.message}`;
+                            logMessage(`[ID: ${tokenId}] ${t('Fetch error')}: ${metadataError}`);
                         }
                     } else {
-                        metadataError = 'URI невалиден после обработки';
-                        logMessage(`[ID: ${tokenId}] URI невалиден после обработки.`);
+                        // Для случая невалидного URI
+                        metadataError = t('URI is invalid after processing');
+                        logMessage(`[ID: ${tokenId}] ${t('URI is invalid after processing')}.`);
                     }
                 } else {
-                    metadataError = 'URI недоступен (метод uri() не реализован или возвращает ошибку)';
-                    logMessage(`[ID: ${tokenId}] URI метаданных недоступен.`);
+                    // Для недоступного URI
+                    metadataError = t('URI is unavailable (uri() method not implemented or returns error)');
+                    logMessage(`[ID: ${tokenId}] ${t('Metadata URI is unavailable')}.`);
                 }
             } catch (error) {
-                metadataError = `Ошибка контракта: ${error.message}`;
-                logMessage(`[ID: ${tokenId}] Ошибка получения URI: ${metadataError}`);
+                // Для ошибки контракта
+                metadataError = `${t('Contract error')}: ${error.message}`;
+                logMessage(`[ID: ${tokenId}] ${t('Error getting URI')}: ${metadataError}`);
             }
 
             return {
@@ -355,7 +359,7 @@ async function getBalances() {
 
             } else {
                 errorCount++;
-                logMessage(`Критическая ошибка обработки промиса метаданных: ${result.reason}`);
+                logMessage(`${t('Critical metadata promise processing error')}: ${result.reason}`);
             }
         });
 
@@ -364,6 +368,7 @@ async function getBalances() {
             balancesDiv.appendChild(balanceList);
             transferButton.disabled = false;
 
+            // Сообщение о статусе
             const statusMessage = `${t('Displayed balances for')} ${displayedCount} ${t('tokens')}` +
                 (errorCount > 0 ? ` (${errorCount} ${t('with metadata errors')})` : '');
             logMessage(statusMessage);

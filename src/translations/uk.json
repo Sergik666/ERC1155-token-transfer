@@ -98,5 +98,12 @@
     "Metadata received": "Метадані отримано",
     "Name": "Ім'я",
     "Displayed balances for": "Відображено баланси для",
-    "with metadata errors": "з помилками метаданих"
+    "with metadata errors": "з помилками метаданих",
+    "Fetch error": "Помилка fetch",
+    "URI is invalid after processing": "URI недійсний після обробки",
+    "URI is unavailable (uri() method not implemented or returns error)": "URI недоступний (метод uri() не реалізований або повертає помилку)",
+    "Metadata URI is unavailable": "URI метаданих недоступний",
+    "Contract error": "Помилка контракту",
+    "Error getting URI": "Помилка отримання URI",
+    "Critical metadata promise processing error": "Критична помилка обробки промісу метаданих"
 }
