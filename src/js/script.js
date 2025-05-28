@@ -240,12 +240,12 @@ async function getBalances() {
 
                             if (metadata.decimals !== undefined && Number.isInteger(metadata.decimals) && metadata.decimals >= 0) {
                                 decimals = metadata.decimals;
-                                logMessage(`[ID: ${tokenId}] Обнаружены decimals: ${decimals}`);
+                                logMessage(`[ID: ${tokenId}] ${t('Decimals detected')}: ${decimals}`);
                             } else {
-                                logMessage(`[ID: ${tokenId}] Decimals не найдены или некорректны в метаданных, используется 0.`);
+                                logMessage(`[ID: ${tokenId}] ${t('Decimals not found or invalid in metadata, using 0.')}`);
                             }
 
-                            logMessage(`[ID: ${tokenId}] Метаданные получены: Имя='${name}', Decimals=${decimals}`);
+                            logMessage(`[ID: ${tokenId}] ${t('Metadata received')}: ${t('Name')}='${name}', Decimals=${decimals}`);
 
                         } catch (fetchError) {
                             clearTimeout(timeoutId);
@@ -308,10 +308,10 @@ async function getBalances() {
                     const img = document.createElement('img');
                     img.src = data.imageUrl;
                     img.alt = data.name;
-                    img.onerror = () => { imageDiv.innerHTML = '[Ошибка загр.]'; };
+                    img.onerror = () => { imageDiv.innerHTML = t('Image load error'); };
                     imageDiv.appendChild(img);
                 } else {
-                    imageDiv.textContent = '[Нет изобр.]';
+                    imageDiv.textContent = t('No image');
                 }
 
                 const infoDiv = document.createElement('div');
@@ -364,8 +364,8 @@ async function getBalances() {
             balancesDiv.appendChild(balanceList);
             transferButton.disabled = false;
 
-            const statusMessage = `Отображены балансы для ${displayedCount} токенов` +
-                (errorCount > 0 ? ` (${errorCount} с ошибками метаданных)` : '');
+            const statusMessage = `${t('Displayed balances for')} ${displayedCount} ${t('tokens')}` +
+                (errorCount > 0 ? ` (${errorCount} ${t('with metadata errors')})` : '');
             logMessage(statusMessage);
 
             if (errorCount > 0) {
@@ -385,8 +385,8 @@ async function getBalances() {
                 balancesDiv.insertBefore(warningDiv, balanceList);
             }
         } else {
-            balancesDiv.innerHTML = 'Не удалось получить метаданные ни для одного токена.';
-            logMessage('Не удалось получить метаданные ни для одного токена.');
+            balancesDiv.innerHTML = t('Failed to get metadata for any token');
+            logMessage(t('Failed to get metadata for any token'));
             transferButton.disabled = true;
         }
 

@@ -92,5 +92,11 @@
     "Metadata is not available at the specified URI": "Метаданные недоступны по указанному URI",
     "CORS issues or network errors": "Проблемы с CORS или сетевые ошибки",
     "Metadata loading timeout": "Таймаут загрузки метаданных",
-    "Tokens remain functional for transfers": "Токены остаются функциональными для переводов"
+    "Tokens remain functional for transfers": "Токены остаются функциональными для переводов",
+    "Decimals detected": "Обнаружены decimals",
+    "Decimals not found or invalid in metadata, using 0.": "Decimals не найдены или некорректны в метаданных, используется 0",
+    "Metadata received": "Метаданные получены",
+    "Name": "Имя",
+    "Displayed balances for": "Отображены балансы для",
+    "with metadata errors": "с ошибками метаданных"
 }
