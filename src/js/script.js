@@ -326,15 +326,15 @@ async function getBalances() {
                         formattedBalance = parseFloat(formattedBalance).toString();
                     }
                 } catch (formatError) {
-                    logMessage(`[ID: ${idStr}] Ошибка форматирования баланса: ${formatError.message}`);
-                    formattedBalance = 'Ошибка!';
+                    logMessage(`[ID: ${idStr}] ${t('Balance formatting error')}: ${formatError.message}`);
+                    formattedBalance = t('Error');
                 }
 
                 infoDiv.innerHTML = `
                     <strong>${data.name}</strong>
                     <small>ID: ${idStr}</small>
-                    <div class="balance-line">Баланс: <span class="balance-amount">${formattedBalance}</span></div>
-                    <div class="raw-balance-line">Базовых единиц: ${rawBalanceStr}</div>
+                    <div class="balance-line">${t('Balance')}: <span class="balance-amount">${formattedBalance}</span></div>
+                    <div class="raw-balance-line">${t('Base units')}: ${rawBalanceStr}</div>
                     ${data.error ? `<span class="metadata-error">⚠️ ${data.error}</span>` : ''}
                 `;
 
@@ -344,7 +344,7 @@ async function getBalances() {
                 amountInput.type = 'number';
                 amountInput.max = formattedBalance;
                 amountInput.step = 'any';
-                amountInput.placeholder = 'Кол-во';
+                amountInput.placeholder = t('Amount');
                 amountInput.dataset.tokenId = idStr;
                 transferDiv.appendChild(amountInput);
 
@@ -372,15 +372,15 @@ async function getBalances() {
                 const warningDiv = document.createElement('div');
                 warningDiv.className = 'metadata-warning';
                 warningDiv.innerHTML = `
-                    <p><strong>⚠️ Внимание:</strong> Для ${errorCount} токенов не удалось получить метаданные. 
-                    Это может происходить по следующим причинам:</p>
+                    <p><strong>⚠️ ${t('Warning')}:</strong> ${t('Failed to get metadata for')} ${errorCount} ${t('tokens')}. 
+                    ${t('This may happen due to the following reasons')}:</p>
                     <ul>
-                        <li>Контракт не реализует метод uri() для некоторых токенов</li>
-                        <li>Метаданные недоступны по указанному URI</li>
-                        <li>Проблемы с CORS или сетевые ошибки</li>
-                        <li>Таймаут загрузки метаданных</li>
+                        <li>${t('Contract does not implement uri() method for some tokens')}</li>
+                        <li>${t('Metadata is not available at the specified URI')}</li>
+                        <li>${t('CORS issues or network errors')}</li>
+                        <li>${t('Metadata loading timeout')}</li>
                     </ul>
-                    <p>Токены остаются функциональными для переводов.</p>
+                    <p>${t('Tokens remain functional for transfers')}.</p>
                 `;
                 balancesDiv.insertBefore(warningDiv, balanceList);
             }
@@ -437,7 +437,7 @@ async function transferTokens() {
         if (amountStr && parseFloat(amountStr) > 0) {
             const tokenData = currentBalances[idStr];
             if (!tokenData) {
-                logMessage(`[Transfer Error] Не найдены данные для ID ${idStr} в currentBalances.`);
+                logMessage(`${t('Transfer Error: Data not found for ID')} ${idStr} ${t('in currentBalances')}.`);
                 inputError = true;
                 input.style.borderColor = 'red';
                 return;
@@ -450,17 +450,17 @@ async function transferTokens() {
                 const rawAmountToSend = ethers.utils.parseUnits(amountStr, decimals);
 
                 if (rawAmountToSend.isNegative() || rawAmountToSend.isZero()) {
-                    throw new Error("Количество должно быть положительным.");
+                    throw new Error(t("Amount must be positive."));
                 }
                 if (rawAmountToSend.gt(rawBalanceBigNum)) {
-                    throw new Error(`Превышает баланс (${ethers.utils.formatUnits(rawBalanceBigNum, decimals)})`);
+                    throw new Error(t('Exceeds balance') + ` (${ethers.utils.formatUnits(rawBalanceBigNum, decimals)})`);
                 }
 
                 idsToTransfer.push(idStr);
                 amountsToTransfer.push(rawAmountToSend);
 
             } catch (e) {
-                logMessage(`[ID: ${idStr}] Ошибка ввода/валидации: ${e.message} (Введено: "${amountStr}")`);
+                logMessage(`[ID: ${idStr}] ${t('Input/validation error')}: ${e.message} (${t('Entered')}: "${amountStr}")`);
                 input.style.borderColor = 'red';
                 inputError = true;
                 if (e.message.includes('underflow') || e.message.includes('invalid decimal value')) {
@@ -469,7 +469,7 @@ async function transferTokens() {
             }
         } else if (amountStr && parseFloat(amountStr) <= 0) {
             input.style.borderColor = 'red';
-            logMessage(`[ID: ${idStr}] Количество должно быть положительным.`);
+            logMessage(`[ID: ${idStr}] ${t('Amount must be positive')}.`);
             inputError = true;
         }
     });
