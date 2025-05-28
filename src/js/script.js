@@ -401,27 +401,26 @@ async function getBalances() {
 
 async function checkContractSupport(contract) {
     try {
-        // ERC-165 interface detection
-        const ERC1155_INTERFACE_ID = '0xd9b67a26'; // ERC-1155
-        const ERC1155_METADATA_INTERFACE_ID = '0x0e89341c'; // ERC-1155 Metadata Extension
+        const ERC1155_INTERFACE_ID = '0xd9b67a26';
+        const ERC1155_METADATA_INTERFACE_ID = '0x0e89341c';
 
         const supportsERC1155 = await contract.supportsInterface(ERC1155_INTERFACE_ID);
         const supportsMetadata = await contract.supportsInterface(ERC1155_METADATA_INTERFACE_ID);
 
-        logMessage(`Контракт поддерживает ERC-1155: ${supportsERC1155}`);
-        logMessage(`Контракт поддерживает ERC-1155 Metadata: ${supportsMetadata}`);
+        logMessage(`${t('Contract supports ERC-1155')}: ${supportsERC1155}`);
+        logMessage(`${t('Contract supports ERC-1155 Metadata')}: ${supportsMetadata}`);
 
         return { supportsERC1155, supportsMetadata };
     } catch (error) {
-        logMessage(`Не удалось проверить поддержку интерфейсов: ${error.message}`);
-        return { supportsERC1155: true, supportsMetadata: false }; // предполагаем базовую поддержку
+        logMessage(`${t('Failed to check interface support')}: ${error.message}`);
+        return { supportsERC1155: true, supportsMetadata: false };
     }
 }
 
 async function transferTokens() {
     const recipientAddress = recipientAddressInput.value.trim();
-    if (!ethers.utils.isAddress(recipientAddress)) { /*...*/ return; }
-    if (!signer || !userAddress || !currentContractAddress) { /*...*/ return; }
+    if (!ethers.utils.isAddress(recipientAddress)) { return; }
+    if (!signer || !userAddress || !currentContractAddress) { return; }
 
     const idsToTransfer = [];
     const amountsToTransfer = [];
@@ -476,43 +475,43 @@ async function transferTokens() {
     });
 
     if (inputError) {
-        let alertMessage = 'Пожалуйста, исправьте ошибки в полях количества (отмечены красным).';
+        let alertMessage = t('Please fix the amount errors (marked in red).');
         if (conversionError) {
-            alertMessage += '\nУбедитесь, что количество десятичных знаков не превышает допустимое для токена.';
+            alertMessage += '\n' + t('Make sure decimal places do not exceed token limit.');
         }
         alert(alertMessage);
         return;
     }
 
     if (idsToTransfer.length === 0) {
-        logMessage('Нет токенов для перевода.');
-        alert('Пожалуйста, укажите количество > 0 хотя бы для одного токена.');
+        logMessage(t('No tokens to transfer'));
+        alert(t('Please specify amount > 0 for at least one token'));
         return;
     }
 
-    logMessage(`Подготовка к переводу ${idsToTransfer.length} типов токенов на адрес ${recipientAddress}...`);
+    logMessage(`${t('Preparing to transfer')} ${idsToTransfer.length} ${t('types of tokens to address')} ${recipientAddress}...`);
     logMessage(`IDs: [${idsToTransfer.join(', ')}]`);
-    logMessage(`Raw Amounts: [${amountsToTransfer.map(a => a.toString()).join(', ')}]`);
+    logMessage(`${t('Raw Amounts')}: [${amountsToTransfer.map(a => a.toString()).join(', ')}]`);
     transferButton.disabled = true;
-    transferStatusDiv.textContent = 'Подтвердите транзакцию в MetaMask...';
+    transferStatusDiv.textContent = t('Confirm transaction in MetaMask');
 
     try {
         const contract = new ethers.Contract(currentContractAddress, erc1155Abi, signer);
         const tx = await contract.safeBatchTransferFrom(
             userAddress, recipientAddress, idsToTransfer, amountsToTransfer, '0x'
         );
-        logMessage(`Транзакция отправлена! Хэш: ${tx.hash}`);
-        transferStatusDiv.textContent = `Транзакция отправлена! Ожидание подтверждения...`;
+        logMessage(`${t('Transaction sent')}! ${t('Hash')}: ${tx.hash}`);
+        transferStatusDiv.textContent = `${t('Transaction sent')}! ${t('Waiting for confirmation')}...`;
         const receipt = await tx.wait();
-        logMessage(`Транзакция подтверждена! Блок: ${receipt.blockNumber}`);
-        transferStatusDiv.innerHTML = `Успешно! <a href="${POLYGON_EXPLORER}tx/${tx.hash}" target="_blank">PolygonScan</a>`;
-        amountInputs.forEach(input => input.value = ''); // Очистка инпутов
-        logMessage('Обновление балансов после перевода...');
+        logMessage(`${t('Transaction confirmed')}! ${t('Block')}: ${receipt.blockNumber}`);
+        transferStatusDiv.innerHTML = `${t('Success')}! <a href="${POLYGON_EXPLORER}tx/${tx.hash}" target="_blank">PolygonScan</a>`;
+        amountInputs.forEach(input => input.value = '');
+        logMessage(t('Updating balances after transfer'));
         await getBalances();
 
     } catch (error) {
-        logMessage(`Ошибка перевода: ${error.message || error}`);
-        transferStatusDiv.textContent = `Ошибка перевода: ${error.message || error}`;
+        logMessage(`${t('Transfer error')}: ${error.message || error}`);
+        transferStatusDiv.textContent = `${t('Transfer error')}: ${error.message || error}`;
         transferButton.disabled = Object.keys(currentBalances).length === 0;
     }
 }

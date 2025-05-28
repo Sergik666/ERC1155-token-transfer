@@ -69,5 +69,10 @@
     "Balances received. Requesting metadata...": "Балансы получены. Запрос метаданных...",
     "No tokens with balance > 0 in range": "Нет токенов с балансом > 0 в диапазоне",
     "Requesting metadata from": "Запрос метаданных с",
-    "Wallet disconnected": "Кошелек отключен"
+    "Wallet disconnected": "Кошелек отключен",
+    "Please fix the amount errors (marked in red).": "Пожалуйста, исправьте ошибки в полях количества (отмечены красным).",
+    "Make sure decimal places do not exceed token limit.": "Убедитесь, что количество десятичных знаков не превышает допустимое для токена.",
+    "Please specify amount > 0 for at least one token": "Пожалуйста, укажите количество > 0 хотя бы для одного токена",
+    "Raw Amounts": "Исходные количества",
+    "Hash": "Хэш"
 }

@@ -69,5 +69,10 @@
     "Balances received. Requesting metadata...": "Баланси отримано. Запит метаданих...",
     "No tokens with balance > 0 in range": "Немає токенів з балансом > 0 в діапазоні",
     "Requesting metadata from": "Запит метаданих з",
-    "Wallet disconnected": "Гаманець відключено"
+    "Wallet disconnected": "Гаманець відключено",
+    "Please fix the amount errors (marked in red).": "Будь ласка, виправте помилки в полях кількості (позначені червоним).",
+    "Make sure decimal places do not exceed token limit.": "Переконайтеся, що кількість десяткових знаків не перевищує допустиму для токена.",
+    "Please specify amount > 0 for at least one token": "Будь ласка, вкажіть кількість > 0 хоча б для одного токена",
+    "Raw Amounts": "Вихідні кількості",
+    "Hash": "Хеш"
 }
