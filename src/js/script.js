@@ -53,7 +53,7 @@ function handleAccountsChanged(accounts) {
     }
     else {
         userAddress = accounts[0];
-        logMessage(`Аккаунт изменен: ${userAddress}`);
+        logMessage(`${t('Account changed')}: ${userAddress}`);
         userAddressInput.value = userAddress;
         signer = provider.getSigner();
         resetBalancesAndTransfer();
@@ -63,18 +63,18 @@ function handleAccountsChanged(accounts) {
     }
 }
 function handleChainChanged(chainId) {
-    logMessage(`Сеть изменена: ${chainId}`);
+    logMessage(`${t('Network changed')}: ${chainId}`);
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
     if (chainId !== POLYGON_CHAIN_ID) {
-        logMessage('Предупреждение: Выбрана неверная сеть.');
-        statusDiv.textContent = 'Статус: Подключена неверная сеть!';
+        logMessage(t('Warning: Wrong network selected.'));
+        statusDiv.textContent = t('Status: Wrong network connected!');
         statusDiv.style.color = 'orange';
         resetBalancesAndTransfer();
         getBalanceButton.disabled = true;
     } else {
-        logMessage('Подключено к сети Polygon.');
-        statusDiv.textContent = 'Статус: Подключен к Polygon';
+        logMessage(t('Connected to Polygon network'));
+        statusDiv.textContent = t('Status: Connected to Polygon');
         statusDiv.style.color = 'green';
         getBalanceButton.disabled = !userAddress;
         if (currentContractAddress && userAddress) {
@@ -154,7 +154,7 @@ async function getBalances() {
     if (!provider || !userAddress) { return; }
 
     logMessage(`Запрос балансов для контракта ${currentContractAddress}...`);
-    balancesDiv.innerHTML = '<i>Загрузка балансов...</i>';
+    balancesDiv.innerHTML = `<i>${t('Loading balances')}...</i>`;
     getBalanceButton.disabled = true;
     resetBalancesAndTransfer();
 
@@ -186,12 +186,12 @@ async function getBalances() {
         }
 
         if (tokensWithBalance.length === 0) {
-            balancesDiv.innerHTML = `Нет токенов с балансом > 0 в диапазоне ID 0-${ID_FETCH_LIMIT}.`;
+            balancesDiv.innerHTML = `${t('No tokens with balance > 0')} ${t('in range')} 0-${ID_FETCH_LIMIT}.`;
             logMessage(`Нет токенов с балансом > 0 в диапазоне ID 0-${ID_FETCH_LIMIT}.`);
             return;
         }
 
-        balancesDiv.innerHTML = `<i>Загрузка метаданных (${tokensWithBalance.length} токенов)...</i>`;
+        balancesDiv.innerHTML = `<i>${t('Loading metadata')} (${tokensWithBalance.length} ${t('tokens')})...</i>`;
 
         const metadataPromises = tokensWithBalance.map(async (token) => {
             const tokenId = token.id;
