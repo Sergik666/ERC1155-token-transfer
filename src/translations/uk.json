@@ -61,5 +61,13 @@
     "Block": "Блок",
     "Success": "Успішно",
     "Updating balances after transfer": "Оновлення балансів після переказу",
-    "Transfer error": "Помилка переказу"
+    "Transfer error": "Помилка переказу",
+    "Contract not found": "Контракт не знайдено",
+    "Error getting URI for token": "Помилка отримання URI для токена",
+    "Requesting balances for contract": "Запит балансів для контракту",
+    "Calling balanceOfBatch for IDs": "Виклик balanceOfBatch для ID",
+    "Balances received. Requesting metadata...": "Баланси отримано. Запит метаданих...",
+    "No tokens with balance > 0 in range": "Немає токенів з балансом > 0 в діапазоні",
+    "Requesting metadata from": "Запит метаданих з",
+    "Wallet disconnected": "Гаманець відключено"
 }

@@ -48,7 +48,7 @@ async function connectWalletUI(logger) {
 
 function handleAccountsChanged(accounts) {
     if (accounts.length === 0) {
-        logMessage(t('Wallet connected'));
+        logMessage(t('Wallet disconnected'));
         resetApp();
     }
     else {
@@ -62,6 +62,7 @@ function handleAccountsChanged(accounts) {
         }
     }
 }
+
 function handleChainChanged(chainId) {
     logMessage(`${t('Network changed')}: ${chainId}`);
     provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -135,14 +136,13 @@ async function safeGetTokenUri(contract, tokenId) {
     try {
         const contractCode = await contract.provider.getCode(contract.address);
         if (contractCode === '0x') {
-            throw new Error('Контракт не найден');
+            throw new Error(t('Contract not found'));
         }
 
         const uri = await contract.uri(tokenId);
         return uri;
     } catch (error) {
-        console.warn(`Ошибка получения URI для токена ${tokenId}: ${error.message}`);
-
+        console.warn(`${t('Error getting URI for token')} ${tokenId}: ${error.message}`);
         return null;
     }
 }
@@ -153,7 +153,7 @@ async function getBalances() {
     if (!ethers.utils.isAddress(currentContractAddress)) { return; }
     if (!provider || !userAddress) { return; }
 
-    logMessage(`Запрос балансов для контракта ${currentContractAddress}...`);
+    logMessage(`${t('Requesting balances for contract')} ${currentContractAddress}...`);
     balancesDiv.innerHTML = `<i>${t('Loading balances')}...</i>`;
     getBalanceButton.disabled = true;
     resetBalancesAndTransfer();
@@ -174,9 +174,9 @@ async function getBalances() {
                 accounts.push(userAddress);
             }
 
-            logMessage(`Вызов balanceOfBatch для ID ${rangeFrom}-${rangeTo}...`);
+            logMessage(`${t('Calling balanceOfBatch for IDs')} ${rangeFrom}-${rangeTo}...`);
             const balancesBigNum = await contract.balanceOfBatch(accounts, idsToCheck);
-            logMessage('Балансы получены. Запрос метаданных...');
+            logMessage(t('Balances received. Requesting metadata...'));
 
             balancesBigNum.forEach((balance, index) => {
                 if (!balance.isZero()) {
@@ -186,8 +186,8 @@ async function getBalances() {
         }
 
         if (tokensWithBalance.length === 0) {
-            balancesDiv.innerHTML = `${t('No tokens with balance > 0')} ${t('in range')} 0-${ID_FETCH_LIMIT}.`;
-            logMessage(`Нет токенов с балансом > 0 в диапазоне ID 0-${ID_FETCH_LIMIT}.`);
+            balancesDiv.innerHTML = t('No tokens with balance > 0 in range') + ` 0-${ID_FETCH_LIMIT}.`;
+            logMessage(t('No tokens with balance > 0 in range') + ` 0-${ID_FETCH_LIMIT}.`);
             return;
         }
 
@@ -208,7 +208,7 @@ async function getBalances() {
                     const resolvedUri = resolveMetadataUri(rawUri, tokenId);
 
                     if (resolvedUri) {
-                        logMessage(`[ID: ${tokenId}] Запрос метаданных с ${resolvedUri}`);
+                        logMessage(`[ID: ${tokenId}] ${t('Requesting metadata from')} ${resolvedUri}`);
                         const controller = new AbortController();
                         const timeoutId = setTimeout(() => controller.abort(), METADATA_FETCH_TIMEOUT);
 
@@ -222,12 +222,12 @@ async function getBalances() {
                             clearTimeout(timeoutId);
 
                             if (!response.ok) {
-                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                throw new Error(`${t('HTTP error')} ${response.status}: ${response.statusText}`);
                             }
 
                             const contentType = response.headers.get('content-type');
                             if (!contentType || !contentType.includes('application/json')) {
-                                throw new Error('Ответ не является JSON');
+                                throw new Error(t('Response is not JSON'));
                             }
 
                             const metadata = await response.json();
@@ -391,8 +391,8 @@ async function getBalances() {
         }
 
     } catch (error) {
-        logMessage(`Критическая ошибка при получении балансов: ${error.message || error}`);
-        balancesDiv.innerHTML = `Ошибка получения балансов: ${error.message || error}`;
+        logMessage(`${t('Critical error getting balances')}: ${error.message || error}`);
+        balancesDiv.innerHTML = `${t('Error getting balances')}: ${error.message || error}`;
         transferButton.disabled = true;
     } finally {
         getBalanceButton.disabled = false;
