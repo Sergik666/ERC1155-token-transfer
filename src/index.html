@@ -25,8 +25,21 @@
 
         <hr style="margin: 20px 0;">
 
-        <label for="contractAddress"><span data-translate="Contract address">Contract address</span> ERC-1155:</label>
-        <input type="text" id="contractAddress" placeholder="0x...">
+        <div class="contract-address-container">
+            <label for="contractAddress"><span data-translate="Contract address">Contract address</span> ERC-1155:</label>
+            <div class="contract-input-group">
+                <div>
+                    <select id="savedContracts" class="contract-select">
+                        <option value="" data-translate="Select or enter new address">Select or enter new address</option>
+                    </select>
+                </div>
+                <div class="contract-input">
+                    <input type="text" id="contractAddress" placeholder="0x...">
+                    <button id="saveContract" data-translate="Save">Save</button>
+                    <button id="removeContract" data-translate="Remove">Remove</button>
+                </div>
+            </div>
+        </div>
 
         <button id="getBalanceButton" disabled data-translate="Get balances and metadata">Get balances and
             metadata</button>

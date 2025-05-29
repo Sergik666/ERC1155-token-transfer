@@ -105,5 +105,9 @@
     "Metadata URI is unavailable": "URI метаданных недоступен",
     "Contract error": "Ошибка контракта",
     "Error getting URI": "Ошибка получения URI",
-    "Critical metadata promise processing error": "Критическая ошибка обработки промиса метаданных"
+    "Critical metadata promise processing error": "Критическая ошибка обработки промиса метаданных",
+    "Select or enter new address": "Выберите или введите новый адрес",
+    "Save": "Сохранить",
+    "Remove": "Удалить",
+    "Please enter a valid address": "Пожалуйста, введите корректный адрес"
 }

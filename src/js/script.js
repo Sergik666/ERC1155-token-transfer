@@ -8,6 +8,9 @@ const balancesDiv = document.getElementById('balances');
 const recipientAddressInput = document.getElementById('recipientAddress');
 const transferStatusDiv = document.getElementById('transferStatus');
 const logContent = document.getElementById('logContent');
+const savedContractsSelect = document.getElementById('savedContracts');
+const saveContractButton = document.getElementById('saveContract');
+const removeContractButton = document.getElementById('removeContract');
 
 const ID_FETCH_LIMIT = 5000;
 const METADATA_FETCH_TIMEOUT = 10000;
@@ -521,10 +524,67 @@ async function transferTokens() {
     }
 }
 
+function loadSavedContracts() {
+    const saved = JSON.parse(localStorage.getItem('savedContracts') || '[]');
+    savedContractsSelect.innerHTML = `<option value="" data-translate="Select or enter new address">${t('Select or enter new address')}</option>`;
+    saved.forEach(address => {
+        const option = document.createElement('option');
+        option.value = address;
+        option.textContent = address;
+        savedContractsSelect.appendChild(option);
+    });
+    removeContractButton.disabled = !savedContractsSelect.value;
+}
+
+function saveContract() {
+    const address = contractAddressInput.value.trim();
+    if (!ethers.utils.isAddress(address)) {
+        alert(t('Please enter a valid address'));
+        return;
+    }
+
+    const saved = JSON.parse(localStorage.getItem('savedContracts') || '[]');
+    if (!saved.includes(address)) {
+        saved.push(address);
+        localStorage.setItem('savedContracts', JSON.stringify(saved));
+        loadSavedContracts();
+        savedContractsSelect.value = address;
+    }
+}
+
+function removeContract() {
+    const address = savedContractsSelect.value;
+    if (!address) return;
+
+    const saved = JSON.parse(localStorage.getItem('savedContracts') || '[]');
+    const index = saved.indexOf(address);
+    if (index > -1) {
+        saved.splice(index, 1);
+        localStorage.setItem('savedContracts', JSON.stringify(saved));
+        loadSavedContracts();
+        contractAddressInput.value = '';
+    }
+}
+
+// Add to the window.addEventListener('load', ...)
 window.addEventListener('load', () => {
     const logger = fullLogger;
     logger.message(t('The page is loaded. Waiting for wallet connection.'));
     connectButton.addEventListener('click', () => { connectWalletUI(logger); });
     getBalanceButton.addEventListener('click', getBalances);
     transferButton.addEventListener('click', transferTokens);
+    loadSavedContracts();
+    
+    savedContractsSelect.addEventListener('change', (e) => {
+        contractAddressInput.value = e.target.value;
+        removeContractButton.disabled = !e.target.value;
+    });
+
+    contractAddressInput.addEventListener('input', () => {
+        const address = contractAddressInput.value.trim();
+        saveContractButton.disabled = !ethers.utils.isAddress(address);
+    });
+
+    saveContractButton.addEventListener('click', saveContract);
+    removeContractButton.addEventListener('click', removeContract);
 });

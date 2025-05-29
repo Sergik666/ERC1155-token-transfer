@@ -105,5 +105,9 @@
     "Metadata URI is unavailable": "URI метаданих недоступний",
     "Contract error": "Помилка контракту",
     "Error getting URI": "Помилка отримання URI",
-    "Critical metadata promise processing error": "Критична помилка обробки промісу метаданих"
+    "Critical metadata promise processing error": "Критична помилка обробки промісу метаданих",
+    "Select or enter new address": "Оберіть або введіть нову адресу",
+    "Save": "Зберегти",
+    "Remove": "Видалити",
+    "Please enter a valid address": "Будь ласка, введіть коректну адресу"
 }
