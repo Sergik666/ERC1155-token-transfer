@@ -33,7 +33,7 @@ function logMessage(message) {
 
 async function connectWalletUI(logger) {
     try {
-        signer = connectWeb3Wallet(logger);
+        signer = await connectWeb3Wallet(logger);
         if (!signer) {
             return;
         }
